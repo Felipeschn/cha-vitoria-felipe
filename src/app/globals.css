@@ -500,21 +500,23 @@ h1 {
 }
 
 .checklist__mark {
-  width: 42px;
-  aspect-ratio: 1;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--wood);
-  border-radius: 50%;
+  border-radius: 8px;
+  background: var(--moss);
   color: var(--paper);
-  font-family: var(--font-sans), sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
 }
 
-.is-reserved .checklist__mark {
-  border-color: var(--moss);
-  background: var(--moss);
+.checklist__mark svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
 }
 
 .checklist__copy {
@@ -556,6 +558,13 @@ h1 {
   font-weight: 600;
   text-transform: uppercase;
   transition: background .2s ease, color .2s ease;
+}
+
+.checklist__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
 }
 
 .checklist__item:not(.is-reserved) button:hover,
@@ -713,6 +722,49 @@ h1 {
   text-underline-offset: 5px;
 }
 
+.admin-loading {
+  color: var(--moss);
+  font-style: italic;
+}
+
+/* Atalho do casal: acompanha a rolagem porque serve em qualquer ponto da
+   página, e usa fundo claro translúcido para continuar legível tanto sobre o
+   hero bege quanto sobre as seções escuras. */
+.admin-entry {
+  position: fixed;
+  z-index: 20;
+  top: clamp(14px, 2.2vw, 26px);
+  right: clamp(14px, 2.2vw, 26px);
+  padding: 10px 18px;
+  border: 1px solid rgba(79, 91, 58, .24);
+  border-radius: 999px;
+  background: rgba(252, 250, 246, .88);
+  color: var(--forest);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-decoration: none;
+  text-transform: uppercase;
+  box-shadow: 0 10px 30px rgba(48, 58, 40, .14);
+  backdrop-filter: blur(8px);
+  transition:
+    border-color .25s ease,
+    background .25s ease,
+    transform .25s ease;
+}
+
+.admin-entry:hover {
+  border-color: var(--wood);
+  background: var(--paper);
+  transform: translateY(-1px);
+}
+
+.admin-entry:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 3px;
+}
+
 .motion-ready [data-reveal] {
   opacity: 0;
   transform: translateY(34px);
@@ -837,6 +889,7 @@ button:focus-visible {
   .info-card { min-height: 210px; padding: 28px; border-radius: 20px; }
   .rsvp { padding: 88px 24px; }
   .button { width: 100%; max-width: 342px; }
+  .admin-entry { padding: 8px 14px; font-size: .66rem; }
   .gift-card { min-height: 150px; padding: 26px; border-radius: 20px; }
   .gift-card__action { align-self: flex-end; }
   .individual-gifts { margin-top: 56px; padding: 28px 20px; border-radius: 24px; }
@@ -846,7 +899,10 @@ button:focus-visible {
     min-height: 0;
     padding: 18px;
   }
-  .checklist__mark { width: 36px; }
+  .checklist__mark {
+    width: 28px;
+    height: 28px;
+  }
   .checklist__item button {
     grid-column: 2;
     width: fit-content;
@@ -871,5 +927,1064 @@ button:focus-visible {
   .motion-ready [data-reveal] {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Guest access and quantity-aware gift registry */
+.individual-gifts {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 5%, rgba(199, 167, 122, .2), transparent 28%),
+    rgba(242, 234, 221, .62);
+}
+
+.individual-gifts::before {
+  content: "";
+  width: 240px;
+  aspect-ratio: 1;
+  position: absolute;
+  right: -150px;
+  top: 240px;
+  z-index: -1;
+  border: 1px solid rgba(79, 91, 58, .12);
+  border-radius: 50%;
+}
+
+.individual-gifts__intro {
+  max-width: 760px;
+}
+
+.gift-list-loading {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--moss);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.gift-list-loading span {
+  width: 18px;
+  aspect-ratio: 1;
+  border: 2px solid rgba(79, 91, 58, .2);
+  border-top-color: var(--moss);
+  border-radius: 50%;
+  animation: gift-loading-spin .8s linear infinite;
+}
+
+.access-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 64px) clamp(18px, 5vw, 56px);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(199, 167, 122, .16), transparent 46%),
+    radial-gradient(circle at 88% 84%, rgba(79, 91, 58, .12), transparent 52%),
+    var(--paper);
+}
+
+.access-page .gift-access-card {
+  width: min(920px, 100%);
+  animation: access-card-in .7s cubic-bezier(.22, .8, .3, 1) both;
+}
+
+@keyframes access-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.access-message {
+  width: fit-content;
+  max-width: 100%;
+  margin: 22px 0 0;
+  padding: 11px 15px;
+  border: 1px solid rgba(79, 91, 58, .16);
+  border-radius: 12px;
+  background: rgba(242, 234, 221, .6);
+  color: var(--moss);
+  font-size: .92rem;
+}
+
+.gift-access-card {
+  display: grid;
+  grid-template-columns: minmax(190px, .68fr) minmax(0, 1.5fr);
+  overflow: hidden;
+  border: 1px solid rgba(79, 91, 58, .2);
+  border-radius: 28px;
+  background: var(--paper);
+  box-shadow: 0 24px 70px rgba(48, 58, 40, .08);
+}
+
+.gift-access-card__seal {
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .08em;
+  position: relative;
+  overflow: hidden;
+  background: var(--forest);
+  color: var(--beige);
+  font-family: var(--font-display), serif;
+  font-size: clamp(3.2rem, 6vw, 5.2rem);
+  line-height: 1;
+}
+
+.gift-access-card__seal::before,
+.gift-access-card__seal::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(199, 167, 122, .38);
+  border-radius: 50%;
+}
+
+.gift-access-card__seal::before {
+  width: 72%;
+  aspect-ratio: 1;
+}
+
+.gift-access-card__seal::after {
+  width: 100%;
+  aspect-ratio: 1;
+  transform: translate(42%, 42%);
+}
+
+.gift-access-card__seal span {
+  color: var(--wood);
+  font-size: .52em;
+  font-style: italic;
+}
+
+.gift-access-card__content {
+  padding: clamp(34px, 5vw, 62px);
+}
+
+.gift-access-card__content .eyebrow {
+  margin-bottom: 12px;
+}
+
+.gift-access-card__content h1 {
+  margin: 0 0 15px;
+  color: var(--forest);
+  font-family: var(--font-display), serif;
+  font-size: clamp(2.4rem, 4vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -.03em;
+}
+
+.gift-access-card__content > p:not(.eyebrow) {
+  max-width: 600px;
+  margin: 0;
+  color: #55574e;
+}
+
+.gift-access-form {
+  margin-top: 30px;
+}
+
+.gift-access-form label {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--forest);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.gift-access-form__row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto;
+  gap: 12px;
+}
+
+.gift-access-form input {
+  width: 100%;
+  min-height: 58px;
+  padding: 0 20px;
+  border: 1px solid rgba(79, 91, 58, .28);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--forest);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.16rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.gift-access-form input:focus {
+  border-color: var(--moss);
+  outline: 4px solid rgba(79, 91, 58, .1);
+}
+
+.gift-access-form .button {
+  min-width: 180px;
+  min-height: 58px;
+  border: 0;
+  cursor: pointer;
+}
+
+.gift-access-form .button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.gift-access-form small {
+  display: block;
+  margin: 9px 0 0 18px;
+  color: #747567;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .68rem;
+}
+
+.gift-identity {
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 26px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border: 1px solid rgba(79, 91, 58, .18);
+  border-radius: 20px;
+  background: rgba(252, 250, 246, .88);
+}
+
+.gift-identity__copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.gift-identity__icon {
+  width: 46px;
+  aspect-ratio: 1;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--moss);
+  color: var(--paper);
+  font-family: var(--font-display), serif;
+  font-size: 1.45rem;
+}
+
+.gift-identity__copy small,
+.gift-identity__copy strong {
+  display: block;
+}
+
+.gift-identity__copy small {
+  color: #747567;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.gift-identity__copy strong {
+  overflow: hidden;
+  color: var(--forest);
+  font-family: var(--font-display), serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gift-identity__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gift-identity__summary span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--beige);
+  color: #666253;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .68rem;
+  font-weight: 600;
+}
+
+.gift-identity > button {
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--moss);
+  cursor: pointer;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .68rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-transform: uppercase;
+}
+
+.checklist {
+  gap: 18px;
+}
+
+.checklist__item {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 22px;
+  padding: 26px;
+  border-radius: 24px;
+}
+
+.checklist__item.is-reserved:not(.is-mine) {
+  opacity: .68;
+}
+
+.checklist__item.is-mine {
+  border-color: rgba(79, 91, 58, .48);
+  background:
+    linear-gradient(145deg, rgba(79, 91, 58, .08), transparent 62%),
+    var(--paper);
+}
+
+.checklist__heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 15px;
+}
+
+.checklist__heading.has-check {
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.checklist__copy strong {
+  white-space: normal;
+}
+
+.checklist__copy p {
+  margin: 7px 0 0;
+  color: #66675f;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.checklist__copy span {
+  margin-top: 10px;
+  line-height: 1.45;
+}
+
+.gift-choice {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.quantity-stepper {
+  display: grid;
+  grid-template-columns: 38px minmax(70px, auto) 38px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(79, 91, 58, .22);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.quantity-stepper button,
+.checklist__item .quantity-stepper button {
+  width: 38px;
+  min-height: 54px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--moss);
+  font-size: 1.25rem;
+}
+
+.quantity-stepper button:hover:not(:disabled),
+.checklist__item .quantity-stepper button:hover:not(:disabled) {
+  background: var(--beige);
+  color: var(--forest);
+}
+
+.quantity-stepper button:disabled {
+  opacity: .28;
+}
+
+.quantity-stepper > span {
+  min-width: 78px;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  align-content: center;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  line-height: 1;
+}
+
+.quantity-stepper strong {
+  color: var(--forest);
+  font-family: var(--font-display), serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.quantity-stepper small {
+  margin-top: 4px;
+  color: #77786f;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.gift-choice__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.checklist__item .gift-choice__actions button,
+.gift-purchased-state button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-color: transparent;
+  font-size: .64rem;
+}
+
+.checklist__item .gift-choice__actions .gift-action-primary {
+  min-height: 44px;
+  border-color: var(--moss);
+  background: var(--moss);
+  color: var(--paper);
+}
+
+.checklist__item .gift-choice__actions .gift-action-primary:hover {
+  background: var(--forest);
+}
+
+.gift-purchased-state,
+.gift-unavailable-state {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.gift-purchased-state > span,
+.gift-unavailable-state {
+  color: var(--moss);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.gift-list-message {
+  width: fit-content;
+  max-width: 100%;
+  padding: 11px 15px;
+  border: 1px solid rgba(79, 91, 58, .16);
+  border-radius: 12px;
+  background: rgba(252, 250, 246, .82);
+  color: var(--moss);
+  font-size: .92rem;
+  font-style: normal;
+}
+
+@keyframes gift-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Couple dashboard */
+.admin-shell {
+  width: min(1120px, 100%);
+}
+
+.admin-dashboard {
+  display: grid;
+  gap: 30px;
+}
+
+.admin-section-heading {
+  max-width: 720px;
+  margin-bottom: 32px;
+}
+
+.admin-section-heading .eyebrow {
+  margin-bottom: 10px;
+}
+
+.admin-section-heading h2 {
+  margin: 0 0 12px;
+  color: var(--forest);
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+
+.admin-section-heading > p:not(.eyebrow) {
+  margin: 0;
+  color: #5d5f56;
+}
+
+.admin-card textarea,
+.admin-card select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(79, 91, 58, .28);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 1rem;
+  text-transform: none;
+}
+
+.admin-card textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.admin-card select {
+  min-height: 54px;
+}
+
+.admin-card textarea:focus,
+.admin-card select:focus {
+  border-color: var(--moss);
+  outline: 3px solid rgba(79, 91, 58, .12);
+}
+
+.invitation-create-form {
+  grid-template-columns: minmax(0, 1.45fr) minmax(180px, .7fr) auto;
+  align-items: end;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--beige);
+}
+
+.invitation-create-form .button {
+  min-width: 190px;
+  min-height: 54px;
+  margin: 0;
+}
+
+.invitation-admin-list {
+  margin-top: 40px;
+  padding-top: 34px;
+  border-top: 1px solid var(--line);
+}
+
+.invitation-admin-list__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.invitation-admin-list__heading h3 {
+  margin: 0;
+  color: var(--forest);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.invitation-admin-list__heading > span {
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--moss);
+  color: var(--paper);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.invitation-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f4f1eb;
+}
+
+.invitation-filter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6c6d65;
+  cursor: pointer;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  transition:
+    background .2s ease,
+    color .2s ease;
+}
+
+.invitation-filter button:hover {
+  color: var(--forest);
+}
+
+.invitation-filter button.is-selected {
+  background: var(--paper);
+  color: var(--forest);
+  box-shadow: 0 4px 14px rgba(48, 58, 40, .1);
+}
+
+.invitation-filter button > span {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(79, 91, 58, .12);
+  font-size: .64rem;
+  font-weight: 700;
+}
+
+.invitation-filter button.is-selected > span {
+  background: var(--moss);
+  color: var(--paper);
+}
+
+.invitation-confirmed-summary {
+  margin: 0 0 20px;
+  color: #6c6d65;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .78rem;
+}
+
+.invitation-confirmed-summary strong {
+  color: var(--moss);
+  font-size: .96rem;
+}
+
+.invitation-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.invitation-admin-item {
+  padding: 24px;
+  border: 1px solid rgba(79, 91, 58, .18);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgba(48, 58, 40, .05);
+}
+
+.invitation-delete-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(160, 68, 52, .28);
+  border-radius: 12px;
+  background: rgba(160, 68, 52, .07);
+  color: #8c3f30;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .72rem;
+  line-height: 1.55;
+}
+
+.invitation-delete-warning button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #8c3f30;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.invitation-admin-item__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.invitation-audience {
+  color: #77786e;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.invitation-admin-item h4 {
+  margin: 3px 0 0;
+  color: var(--forest);
+  font-family: var(--font-display), serif;
+  font-size: 1.65rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.invitation-status {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #e7e3dc;
+  color: #6c6d65;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.invitation-status.is-active {
+  background: rgba(79, 91, 58, .12);
+  color: var(--moss);
+}
+
+.invitation-status.is-confirmed {
+  background: rgba(199, 167, 122, .26);
+  color: #8a6534;
+}
+
+.invitation-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.invitation-admin-item.is-confirmed {
+  border-color: rgba(199, 167, 122, .6);
+}
+
+/* A confirmação é a informação que o casal mais procura na hora de organizar a
+   festa, então ganha um botão próprio, acima das ações de manutenção. */
+.invitation-confirm {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px dashed rgba(79, 91, 58, .38);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--moss);
+  cursor: pointer;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  transition:
+    border-color .2s ease,
+    background .2s ease,
+    color .2s ease;
+}
+
+.invitation-confirm span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(79, 91, 58, .14);
+  font-size: .7rem;
+  line-height: 1;
+}
+
+.invitation-confirm:hover:not(:disabled) {
+  border-color: var(--moss);
+  background: rgba(79, 91, 58, .06);
+}
+
+.invitation-confirm.is-confirmed {
+  border-style: solid;
+  border-color: rgba(199, 167, 122, .7);
+  background: rgba(199, 167, 122, .16);
+  color: #8a6534;
+}
+
+.invitation-confirm.is-confirmed span {
+  background: var(--wood);
+  color: var(--paper);
+}
+
+.invitation-confirm:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+.invitation-code {
+  display: block;
+  margin: 24px 0 14px;
+  color: var(--forest);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(1.55rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.invitation-copy-actions,
+.invitation-manage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.invitation-copy-actions button,
+.invitation-manage-actions button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(79, 91, 58, .24);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--moss);
+  cursor: pointer;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.invitation-copy-actions button:hover,
+.invitation-manage-actions button:hover {
+  border-color: var(--moss);
+  background: var(--moss);
+  color: var(--paper);
+}
+
+.invitation-summary {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.invitation-summary span {
+  color: #696b62;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .68rem;
+}
+
+.invitation-summary strong {
+  color: var(--forest);
+}
+
+.invitation-reservations {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invitation-reservations li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  color: #56584f;
+  font-size: .84rem;
+}
+
+.invitation-reservations small {
+  color: var(--moss);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.invitation-manage-actions {
+  margin-top: 20px;
+}
+
+.invitation-manage-actions button:last-child {
+  color: #8c3f30;
+}
+
+.invitation-manage-actions button.is-danger {
+  border-color: rgba(160, 68, 52, .5);
+  background: rgba(160, 68, 52, .1);
+  color: #8c3f30;
+}
+
+.invitation-manage-actions button.is-danger:hover {
+  border-color: #8c3f30;
+  background: rgba(160, 68, 52, .16);
+  color: #8c3f30;
+}
+
+.admin-empty-state {
+  margin: 0;
+  padding: 28px;
+  border: 1px dashed rgba(79, 91, 58, .24);
+  border-radius: 18px;
+  color: #6b6d64;
+  text-align: center;
+}
+
+.admin-list li > span {
+  display: grid;
+}
+
+.admin-list li strong {
+  color: var(--forest);
+  font-weight: 500;
+}
+
+.admin-list li em {
+  max-width: 520px;
+  margin-top: 3px;
+  color: #74756c;
+  font-size: .82rem;
+  font-style: normal;
+}
+
+@media (max-width: 860px) {
+  .gift-access-card {
+    grid-template-columns: 1fr;
+  }
+  .gift-access-card__seal {
+    min-height: 150px;
+  }
+  .gift-access-card__seal::before {
+    width: 130px;
+  }
+  .gift-identity {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .gift-identity__summary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .invitation-create-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .invitation-create-form .button {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+  .invitation-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .gift-access-card__content {
+    padding: 30px 22px 34px;
+  }
+  .gift-access-form__row {
+    grid-template-columns: 1fr;
+  }
+  .gift-access-form .button {
+    width: 100%;
+  }
+  .gift-identity {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .gift-identity__copy {
+    width: calc(100% - 100px);
+    margin-right: auto;
+  }
+  .gift-identity__copy strong {
+    font-size: 1.25rem;
+  }
+  .gift-identity__summary {
+    order: 3;
+    width: 100%;
+  }
+  .checklist__item {
+    display: flex;
+    padding: 20px;
+  }
+  .gift-choice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .quantity-stepper {
+    width: 100%;
+    grid-template-columns: 46px 1fr 46px;
+  }
+  .gift-choice__actions {
+    align-items: stretch;
+  }
+  .checklist__item .gift-choice__actions button {
+    width: 100%;
+  }
+  .gift-purchased-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .gift-purchased-state button {
+    width: 100%;
+  }
+  .invitation-create-form {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+  .invitation-create-form .button {
+    grid-column: auto;
+  }
+  .admin-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .admin-list li small {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-list-loading span {
+    animation: none;
   }
 }

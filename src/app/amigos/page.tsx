@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { InvitationPage } from "@/components/invitation/invitation-page";
+import { InvitationRoute } from "@/components/invitation/invitation-route";
 
 export const metadata: Metadata = {
   title: "Convite dos amigos",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function FriendsInvitationPage() {
-  return <InvitationPage group="amigos" />;
+  return <InvitationRoute group="amigos" />;
 }

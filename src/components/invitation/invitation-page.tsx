@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { buildWhatsAppShareUrl } from "@/lib/external-links";
 import {
   giftLists,
@@ -9,14 +11,21 @@ import {
 
 import { BotanicalMark } from "./botanical-mark";
 import { IndividualGiftList } from "./individual-gift-list";
+import { InvitationAccessGate } from "./invitation-access-gate";
 import { PixCard } from "./pix-card";
 import { RevealOnScroll } from "./reveal-on-scroll";
 
 type InvitationPageProps = {
+  displayName: string;
   group: InvitationGroup;
+  isAdmin: boolean;
 };
 
-export function InvitationPage({ group }: InvitationPageProps) {
+export function InvitationPage({
+  displayName,
+  group,
+  isAdmin,
+}: InvitationPageProps) {
   const event = invitationGroups[group];
   const isPending = group === "amigos";
   const whatsappUrl = buildWhatsAppShareUrl(event.rsvpMessage);
@@ -24,6 +33,15 @@ export function InvitationPage({ group }: InvitationPageProps) {
   return (
     <main>
       <RevealOnScroll />
+      {/* Mesmo com sessão aberta, um link `#convite=CODE` precisa trocar o
+          convite exibido. */}
+      <InvitationAccessGate hasSession />
+
+      {isAdmin && (
+        <Link className="admin-entry" href="/criar-presentes">
+          Painel admin
+        </Link>
+      )}
 
       <section className="hero" aria-labelledby="invitation-title">
         <div className="hero__content">
@@ -109,7 +127,12 @@ export function InvitationPage({ group }: InvitationPageProps) {
         </a>
       </section>
 
-      <section className="gifts section-shell" aria-labelledby="gifts-title" data-reveal>
+      <section
+        className="gifts section-shell"
+        id="presentes"
+        aria-labelledby="gifts-title"
+        data-reveal
+      >
         <div className="section-heading">
           <p className="eyebrow">Com carinho</p>
           <h2 id="gifts-title">Para o nosso novo cantinho</h2>
@@ -142,7 +165,7 @@ export function InvitationPage({ group }: InvitationPageProps) {
           <PixCard holder={pixDetails.holder} pixKey={pixDetails.key} />
         </div>
 
-        <IndividualGiftList />
+        <IndividualGiftList displayName={displayName} />
       </section>
 
       <footer data-reveal>

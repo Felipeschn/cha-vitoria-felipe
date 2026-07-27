@@ -1,5 +1,5 @@
-import { InvitationPage } from "@/components/invitation/invitation-page";
+import { InvitationRoute } from "@/components/invitation/invitation-route";
 
 export default function Home() {
-  return <InvitationPage group="familia" />;
+  return <InvitationRoute />;
 }
