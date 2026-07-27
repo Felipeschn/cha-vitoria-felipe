@@ -195,6 +195,7 @@ export type Database = {
           quantity_purchased: number
           quantity_reserved: number
           quantity_total: number
+          reference_url: string | null
           sort_order: number
           updated_at: string
         }
@@ -208,6 +209,7 @@ export type Database = {
           quantity_purchased?: number
           quantity_reserved?: number
           quantity_total?: number
+          reference_url?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -221,6 +223,7 @@ export type Database = {
           quantity_purchased?: number
           quantity_reserved?: number
           quantity_total?: number
+          reference_url?: string | null
           sort_order?: number
           updated_at?: string
         }

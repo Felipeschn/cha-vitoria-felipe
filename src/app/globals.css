@@ -1886,6 +1886,123 @@ button:focus-visible {
   font-style: normal;
 }
 
+.gift-reference-link {
+  justify-self: start;
+  margin-top: 6px;
+  color: var(--moss);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(79, 91, 58, .35);
+}
+
+.gift-reference-link:hover {
+  color: var(--forest);
+  border-bottom-color: var(--forest);
+}
+
+.gift-edit-trigger {
+  align-self: center;
+  padding: 7px 14px;
+  border: 1px solid rgba(79, 91, 58, .3);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--moss);
+  cursor: pointer;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition:
+    border-color .2s ease,
+    background .2s ease;
+}
+
+.gift-edit-trigger:hover {
+  border-color: var(--moss);
+  background: rgba(79, 91, 58, .07);
+}
+
+/* Ao editar, o item vira um formulário no lugar da linha — sem modal, para o
+   casal continuar vendo o resto da lista enquanto ajusta. */
+.admin-list li.gift-edit {
+  display: block;
+  padding: 20px;
+  margin: 14px 0;
+  border: 1px solid rgba(79, 91, 58, .28);
+  border-radius: 18px;
+  background: #f8f6f1;
+}
+
+.gift-edit form {
+  margin: 0;
+}
+
+.gift-edit__hint {
+  margin: 0 0 14px;
+  color: #8a6534;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .72rem;
+  line-height: 1.5;
+}
+
+.gift-edit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.gift-edit__actions .button {
+  width: auto;
+}
+
+.gift-edit__actions button[type="button"] {
+  padding: 12px 18px;
+  border: 1px solid rgba(79, 91, 58, .3);
+  border-radius: 999px;
+  background: transparent;
+  color: #6c6d65;
+  cursor: pointer;
+  font-family: var(--font-sans), sans-serif;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+
+.gift-edit__actions button[type="button"]:hover:not(:disabled) {
+  border-color: var(--moss);
+  color: var(--forest);
+}
+
+.gift-edit__actions button:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+.checklist__reference {
+  justify-self: start;
+  margin-top: 8px;
+  color: var(--moss);
+  font-family: var(--font-sans), sans-serif;
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(79, 91, 58, .35);
+  transition:
+    color .2s ease,
+    border-color .2s ease;
+}
+
+.checklist__reference:hover {
+  color: var(--forest);
+  border-bottom-color: var(--forest);
+}
+
 @media (max-width: 860px) {
   .gift-access-card {
     grid-template-columns: 1fr;

@@ -20,6 +20,7 @@ type GiftAction = {
   name?: unknown;
   quantity?: unknown;
   quantityTotal?: unknown;
+  referenceUrl?: unknown;
 };
 
 type GiftRow = {
@@ -32,6 +33,7 @@ type GiftRow = {
   quantity_purchased: number;
   quantity_reserved: number;
   quantity_total: number;
+  reference_url: string | null;
   sort_order: number;
   updated_at: string;
 };
@@ -44,7 +46,7 @@ type ReservationRow = {
 };
 
 const giftSelect =
-  "id,name,description,quantity_total,quantity_reserved,quantity_purchased,quantity_available,is_active,sort_order,created_at,updated_at";
+  "id,name,description,reference_url,quantity_total,quantity_reserved,quantity_purchased,quantity_available,is_active,sort_order,created_at,updated_at";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -80,6 +82,7 @@ function mapGift(item: GiftRow, reservation?: ReservationRow) {
     quantityPurchased: item.quantity_purchased,
     quantityReserved: item.quantity_reserved,
     quantityTotal: item.quantity_total,
+    referenceUrl: item.reference_url,
     sortOrder: item.sort_order,
   };
 }
@@ -106,6 +109,38 @@ function requireGiftDescription(value: unknown) {
   }
 
   return description || null;
+}
+
+/**
+ * O link vira um href na página do convidado. Só http e https passam: um
+ * `javascript:` aqui seria script rodando no navegador de quem abre a lista.
+ */
+function requireReferenceUrl(value: unknown) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return null;
+
+  if (raw.length > 2_048) {
+    throw new ApiError("O link é longo demais.", 400);
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new ApiError(
+      "Informe um link completo, começando com https://.",
+      400,
+    );
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new ApiError(
+      "Informe um link completo, começando com https://.",
+      400,
+    );
+  }
+
+  return parsed.toString();
 }
 
 function readInteger(value: unknown, minimum: number, maximum: number) {
@@ -171,6 +206,12 @@ function mapDatabaseError(error: PostgrestError) {
     }
     if (error.message.includes("gifts_quantity_total_positive")) {
       return new ApiError("Informe uma quantidade de pelo menos 1.", 400);
+    }
+    if (error.message.includes("gifts_reference_url_format")) {
+      return new ApiError(
+        "Informe um link completo, começando com https://.",
+        400,
+      );
     }
     return new ApiError("Os dados enviados são inválidos.", 400);
   }
@@ -296,6 +337,7 @@ export async function POST(request: NextRequest) {
       requireAdmin(session);
       const name = requireGiftName(payload.name);
       const description = requireGiftDescription(payload.description);
+      const referenceUrl = requireReferenceUrl(payload.referenceUrl);
       const quantityTotal = readInteger(payload.quantityTotal, 1, 999);
 
       if (quantityTotal === null) {
@@ -316,6 +358,7 @@ export async function POST(request: NextRequest) {
           description,
           name,
           quantity_total: quantityTotal,
+          reference_url: referenceUrl,
           sort_order: (lastGift?.sort_order ?? 0) + 1,
         })
         .select(giftSelect)
@@ -335,6 +378,9 @@ export async function POST(request: NextRequest) {
       }
       if (payload.description !== undefined) {
         changes.description = requireGiftDescription(payload.description);
+      }
+      if (payload.referenceUrl !== undefined) {
+        changes.reference_url = requireReferenceUrl(payload.referenceUrl);
       }
       if (payload.quantityTotal !== undefined) {
         const quantityTotal = readInteger(payload.quantityTotal, 1, 999);

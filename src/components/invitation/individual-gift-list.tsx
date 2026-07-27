@@ -22,6 +22,7 @@ type GiftItem = {
   quantityPurchased: number;
   quantityReserved: number;
   quantityTotal: number;
+  referenceUrl: string | null;
   sortOrder: number;
 };
 
@@ -237,7 +238,8 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
         <p>
           Reserve apenas a quantidade que deseja presentear. Sua escolha fica
           guardada no convite e aparece em qualquer aparelho em que você usar o
-          mesmo código.
+          mesmo código. Quando houver um link, ele é só uma sugestão do modelo
+          que imaginamos — fique à vontade para comprar onde preferir.
         </p>
       </div>
 
@@ -312,6 +314,16 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
                       <div className="checklist__copy">
                         <strong>{item.name}</strong>
                         {item.description && <p>{item.description}</p>}
+                        {item.referenceUrl && (
+                          <a
+                            className="checklist__reference"
+                            href={item.referenceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Ver sugestão <span aria-hidden="true">↗</span>
+                          </a>
+                        )}
                         <span>
                           {reservation?.status === "purchased"
                             ? `${reservation.quantity} ${reservation.quantity === 1 ? "unidade comprada" : "unidades compradas"}`

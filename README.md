@@ -99,6 +99,15 @@ Excluir um convite apaga o código, as sessões e as escolhas de presente,
 devolvendo as unidades reservadas à lista. É irreversível e serve para convites
 criados por engano. O convite do casal não pode ser excluído.
 
+Cada presente pode ser editado no painel — nome, descrição, quantidade e link.
+A quantidade total nunca cai abaixo das unidades já escolhidas; o formulário
+mostra o mínimo e o banco recusa o resto.
+
+O link é opcional e aparece para o convidado como **"Ver sugestão"**: indica o
+modelo que o casal tem em mente, sem obrigar a comprar naquele lugar. Só `http`
+e `https` são aceitos, validado no servidor e por constraint no banco, já que o
+valor vira um `href` na página do convidado.
+
 O link copiado no painel leva o código no fragmento da URL
 (`/familia#convite=ABCD-EFGH`). Ele abre o convite direto e vale mesmo em um
 aparelho que já tenha outra sessão aberta; o fragmento sai da barra de endereço
