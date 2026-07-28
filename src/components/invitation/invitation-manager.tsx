@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { buildInvitationMessage } from "@/lib/invitation-message";
+
 type AudienceFilter = "todos" | "familia" | "amigos";
 
 const audienceFilters: { label: string; value: AudienceFilter }[] = [
@@ -35,6 +37,8 @@ type ManagedInvitation = {
   displayName: string;
   id: string;
   reservations: ReservationSummary[];
+  sent: boolean;
+  sentAt: string | null;
   sessionVersion: number;
 };
 
@@ -151,6 +155,11 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
     [visible],
   );
 
+  const sentCount = useMemo(
+    () => visible.filter((item) => item.sent).length,
+    [visible],
+  );
+
   // Uma confirmação de exclusão pendurada num convite que sai da vista pelo
   // filtro voltaria armada depois. Some junto com a mudança que a escondeu.
   function changeFilter(next: AudienceFilter) {
@@ -184,7 +193,7 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
 
   async function act(
     invitation: ManagedInvitation,
-    action: "rotate" | "setConfirmed" | "delete",
+    action: "setConfirmed" | "setSent" | "delete",
   ) {
     setPending(`${action}:${invitation.id}`);
     setToast(null);
@@ -195,14 +204,17 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
         confirmed:
           action === "setConfirmed" ? !invitation.confirmed : undefined,
         id: invitation.id,
+        sent: action === "setSent" ? !invitation.sent : undefined,
       });
       setConfirmingDelete(null);
       setToast({
         text:
-          action === "rotate"
-            ? `Novo código para ${invitation.displayName}. Os acessos anteriores foram encerrados.`
-            : action === "delete"
-              ? `${invitation.displayName} foi excluído.`
+          action === "delete"
+            ? `${invitation.displayName} foi excluído.`
+            : action === "setSent"
+              ? invitation.sent
+                ? `${invitation.displayName} voltou para os convites a enviar.`
+                : `Convite de ${invitation.displayName} marcado como enviado.`
               : invitation.confirmed
                 ? `${invitation.displayName} deixou de estar confirmado.`
                 : `${invitation.displayName} confirmou presença.`,
@@ -218,10 +230,33 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
     }
   }
 
-  async function copy(invitation: ManagedInvitation, kind: "code" | "link") {
-    const value = kind === "code" ? invitation.code : invitationLink(invitation);
+  async function copy(
+    invitation: ManagedInvitation,
+    kind: "code" | "link" | "message",
+  ) {
+    const link = invitationLink(invitation);
+    // Sem código não há link, e sem link a mensagem sairia convidando para
+    // lugar nenhum. Os três casos caem no mesmo aviso.
+    const value =
+      kind === "code"
+        ? invitation.code
+        : kind === "link" || !link
+          ? link
+          : buildInvitationMessage({
+              audience: invitation.audience,
+              code: invitation.code,
+              displayName: invitation.displayName,
+              link,
+            });
+
     if (!value) {
-      setToast({ text: "Gere um novo código antes de copiar.", error: true });
+      // Sem a troca de código, um convite ilegível não tem conserto na tela: o
+      // caminho é excluir e criar outro. Dizer isso é melhor do que mandar
+      // procurar um botão que não existe mais.
+      setToast({
+        text: "Este convite perdeu o código. Exclua e crie outro no lugar.",
+        error: true,
+      });
       return;
     }
     try {
@@ -310,8 +345,8 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
 
       {status === "ready" && visible.length > 0 && (
         <p className="adm-stat">
-          <strong>{confirmedCount}</strong> de {visible.length} com presença
-          confirmada
+          <strong>{sentCount}</strong> de {visible.length} com convite enviado ·{" "}
+          <strong>{confirmedCount}</strong> com presença confirmada
         </p>
       )}
 
@@ -452,6 +487,19 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
                 </button>
 
                 <div className="adm-row__more">
+                  {/* Primeiro da fila: é o que o casal usa para efetivamente
+                      convidar alguém. O link sozinho fica ao lado, para quando
+                      a mensagem já foi mandada e falta só o endereço. */}
+                  <button
+                    className="btn btn--quiet is-primary"
+                    type="button"
+                    onClick={() => copy(invitation, "message")}
+                    aria-label={`Copiar mensagem de convite de ${invitation.displayName} para o WhatsApp`}
+                  >
+                    {copied === `message:${invitation.id}`
+                      ? "Copiado"
+                      : "Mensagem"}
+                  </button>
                   <button
                     className="btn btn--quiet"
                     type="button"
@@ -459,13 +507,21 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
                   >
                     {copied === `link:${invitation.id}` ? "Copiado" : "Link"}
                   </button>
+                  {/* Marcação manual: nada aqui adivinha que a mensagem foi
+                      mandada, porque o envio acontece no WhatsApp pessoal e o
+                      site não tem como saber. */}
                   <button
-                    className="btn btn--quiet"
+                    className={`btn btn--quiet${invitation.sent ? " is-done" : ""}`}
                     type="button"
-                    onClick={() => act(invitation, "rotate")}
-                    disabled={pending === `rotate:${invitation.id}`}
+                    aria-pressed={invitation.sent}
+                    onClick={() => act(invitation, "setSent")}
+                    disabled={pending === `setSent:${invitation.id}`}
                   >
-                    {pending === `rotate:${invitation.id}` ? "…" : "Trocar código"}
+                    {pending === `setSent:${invitation.id}`
+                      ? "…"
+                      : invitation.sent
+                        ? "Enviado"
+                        : "Marcar enviado"}
                   </button>
                   <button
                     className="btn btn--quiet is-danger"

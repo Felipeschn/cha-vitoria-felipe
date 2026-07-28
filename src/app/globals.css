@@ -227,6 +227,9 @@ h1, h2, h3, h4 {
 .btn__icon { flex: none; }
 .btn.is-done { border-color: var(--moss); background: var(--moss); color: var(--paper); }
 .btn.is-danger { color: var(--brick); }
+/* Numa fileira de botões discretos, o principal precisa de borda e cor cheia
+   para não sumir — sem virar sólido, que gritaria dentro de cada linha. */
+.btn.is-primary { border-color: var(--line-strong); color: var(--forest); }
 .btn:disabled { cursor: default; opacity: .45; }
 .btn__glyph { display: none; font-size: 1.4rem; line-height: 1; }
 
