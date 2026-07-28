@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
+import { BotanicalMark } from "./botanical-mark";
+
 const codeAlphabetPattern = /[^A-HJ-KM-NP-Z2-9]/g;
 
 function formatCodeInput(value: string) {
@@ -30,6 +32,7 @@ export function InvitationAccessGate({
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [accessing, setAccessing] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   const accessInvitation = useCallback(
     async (invitationCode: string) => {
@@ -48,10 +51,13 @@ export function InvitationAccessGate({
         }
 
         setCode("");
-        // O servidor decide o que renderizar a partir do cookie recém-criado,
-        // inclusive redirecionar quando a audiência não é a da rota atual.
+        // A porta abre enquanto o servidor responde: o refresh corre por baixo
+        // da animação, então não somamos espera — só cobrimos a que já existia.
+        setUnlocking(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
         router.refresh();
       } catch (error) {
+        setUnlocking(false);
         setMessage(
           error instanceof Error && error.message
             ? error.message
@@ -93,59 +99,55 @@ export function InvitationAccessGate({
   if (hasSession) return null;
 
   return (
-    <main className="access-page">
-      <section
-        className="gift-access-card"
-        aria-labelledby="invitation-access-title"
-      >
-        <div className="gift-access-card__seal" aria-hidden="true">
-          V<span>&amp;</span>F
-        </div>
-        <div className="gift-access-card__content">
-          <p className="eyebrow">Chá de casa nova</p>
-          <h1 id="invitation-access-title">Vitória &amp; Felipe</h1>
-          <p>
-            Nosso convite é pessoal. Digite o código que enviamos junto com ele
-            para abrir os detalhes da festa e a sua lista de presentes.
-          </p>
+    <main className={`gate${unlocking ? " is-unlocking" : ""}`}>
+      <section className="gate__card" aria-labelledby="gate-title">
+        <BotanicalMark className="gate__sprig" />
 
-          <form className="gift-access-form" onSubmit={submitCode}>
-            <label htmlFor="invitation-code">Código do convite</label>
-            <div className="gift-access-form__row">
-              <input
-                id="invitation-code"
-                type="text"
-                value={code}
-                onChange={(event) =>
-                  setCode(formatCodeInput(event.target.value))
-                }
-                placeholder="ABCD-EFGH"
-                autoCapitalize="characters"
-                autoComplete="one-time-code"
-                spellCheck={false}
-                maxLength={9}
-                aria-describedby="invitation-code-help"
-                required
-              />
-              <button
-                className="button"
-                type="submit"
-                disabled={accessing || code.length !== 9}
-              >
-                {accessing ? "Abrindo…" : "Abrir convite"}
-              </button>
-            </div>
-            <small id="invitation-code-help">
-              Oito caracteres, com um hífen no meio.
-            </small>
-          </form>
+        <p className="eyebrow">Chá de casa nova</p>
+        <h1 className="gate__title" id="gate-title">
+          Entre.
+        </h1>
+        <p className="gate__lead">
+          O convite é pessoal — use o código que enviamos junto com ele.
+        </p>
 
-          {message && (
-            <p className="access-message" role="status" aria-live="polite">
-              {message}
-            </p>
-          )}
-        </div>
+        <form className="code-field" onSubmit={submitCode}>
+          <label className="code-field__label" htmlFor="invitation-code">
+            Código do convite
+          </label>
+          <input
+            className="code-field__input"
+            id="invitation-code"
+            type="text"
+            value={code}
+            onChange={(event) => setCode(formatCodeInput(event.target.value))}
+            placeholder="ABCD-EFGH"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            autoComplete="one-time-code"
+            enterKeyHint="go"
+            spellCheck={false}
+            maxLength={9}
+            aria-describedby="invitation-code-hint"
+            aria-invalid={message ? true : undefined}
+            required
+          />
+          <button
+            className="btn btn--solid btn--block"
+            type="submit"
+            disabled={accessing || code.length !== 9}
+            aria-busy={accessing}
+          >
+            {accessing ? "Abrindo…" : "Abrir convite"}
+          </button>
+          <small
+            className={`code-field__hint${message ? " code-field__hint--error" : ""}`}
+            id="invitation-code-hint"
+            role={message ? "alert" : undefined}
+          >
+            {message || "Oito caracteres, com um hífen no meio."}
+          </small>
+        </form>
       </section>
     </main>
   );

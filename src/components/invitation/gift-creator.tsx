@@ -20,6 +20,12 @@ type GiftDraft = {
   referenceUrl: string;
 };
 
+type Status = "loading" | "ready" | "error";
+
+type GiftCreatorProps = {
+  onCount?: (total: number) => void;
+};
+
 const emptyDraft: GiftDraft = {
   description: "",
   name: "",
@@ -32,22 +38,20 @@ function minimumQuantity(item: GiftItem) {
   return Math.max(1, item.quantityReserved + item.quantityPurchased);
 }
 
-function draftFrom(item: GiftItem): GiftDraft {
-  return {
-    description: item.description ?? "",
-    name: item.name,
-    quantityTotal: item.quantityTotal,
-    referenceUrl: item.referenceUrl ?? "",
-  };
-}
-
-export function GiftCreator() {
+export function GiftCreator({ onCount }: GiftCreatorProps) {
   const [items, setItems] = useState<GiftItem[]>([]);
+  const [status, setStatus] = useState<Status>("loading");
   const [draft, setDraft] = useState<GiftDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<GiftDraft>(emptyDraft);
-  const [message, setMessage] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
+  // Separado por operação: editar um presente não pode travar o formulário de
+  // criação, que é o que acontecia com uma flag única.
+  const [creating, setCreating] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   const request = useCallback(async (payload: Record<string, unknown>) => {
     const response = await fetch("/api/gifts", {
@@ -66,25 +70,37 @@ export function GiftCreator() {
   const loadItems = useCallback(async () => {
     const data = await request({ action: "adminList" });
     setItems(data.items ?? []);
-  }, [request]);
+    onCount?.(data.items?.length ?? 0);
+  }, [onCount, request]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => {
-      void loadItems().catch((error: unknown) => {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar os presentes.",
-        );
-      });
+      void loadItems()
+        .then(() => setStatus("ready"))
+        .catch((error: unknown) => {
+          setStatus("error");
+          setToast({
+            text:
+              error instanceof Error
+                ? error.message
+                : "Não foi possível carregar os presentes.",
+            error: true,
+          });
+        });
     }, 0);
     return () => window.clearTimeout(initialLoad);
   }, [loadItems]);
 
+  useEffect(() => {
+    if (!toast || toast.error) return;
+    const clear = window.setTimeout(() => setToast(null), 4_000);
+    return () => window.clearTimeout(clear);
+  }, [toast]);
+
   async function addItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
-    setMessage("");
+    setCreating(true);
+    setToast(null);
 
     try {
       await request({
@@ -94,27 +110,26 @@ export function GiftCreator() {
         quantityTotal: draft.quantityTotal,
         referenceUrl: draft.referenceUrl,
       });
-
       setDraft(emptyDraft);
-      setMessage(
-        "Presente criado. Ele já aparece nas páginas de amigos e família.",
-      );
+      setToast({ text: "Presente criado. Já aparece na lista dos convidados." });
       await loadItems();
     } catch (error) {
-      setMessage(
-        error instanceof Error && error.message
-          ? error.message
-          : "Não foi possível adicionar o item.",
-      );
+      setToast({
+        text:
+          error instanceof Error && error.message
+            ? error.message
+            : "Não foi possível adicionar o item.",
+        error: true,
+      });
     } finally {
-      setSaving(false);
+      setCreating(false);
     }
   }
 
   async function saveEdit(item: GiftItem, event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
-    setMessage("");
+    setSavingId(item.id);
+    setToast(null);
 
     try {
       await request({
@@ -125,134 +140,187 @@ export function GiftCreator() {
         quantityTotal: editDraft.quantityTotal,
         referenceUrl: editDraft.referenceUrl,
       });
-
       setEditingId(null);
-      setMessage(`${editDraft.name} foi atualizado.`);
+      setToast({ text: `${editDraft.name} foi atualizado.` });
       await loadItems();
     } catch (error) {
-      setMessage(
-        error instanceof Error && error.message
-          ? error.message
-          : "Não foi possível salvar as alterações.",
-      );
+      setToast({
+        text:
+          error instanceof Error && error.message
+            ? error.message
+            : "Não foi possível salvar as alterações.",
+        error: true,
+      });
     } finally {
-      setSaving(false);
+      setSavingId(null);
+    }
+  }
+
+  async function archiveItem(item: GiftItem) {
+    setSavingId(item.id);
+    try {
+      await request({ action: "archive", id: item.id });
+      setEditingId(null);
+      setToast({ text: `${item.name} saiu da lista dos convidados.` });
+      await loadItems();
+    } catch (error) {
+      setToast({
+        text:
+          error instanceof Error && error.message
+            ? error.message
+            : "Não foi possível arquivar.",
+        error: true,
+      });
+    } finally {
+      setSavingId(null);
     }
   }
 
   function startEditing(item: GiftItem) {
     setEditingId(item.id);
-    setEditDraft(draftFrom(item));
-    setMessage("");
+    setEditDraft({
+      description: item.description ?? "",
+      name: item.name,
+      quantityTotal: item.quantityTotal,
+      referenceUrl: item.referenceUrl ?? "",
+    });
+    setToast(null);
   }
 
   return (
-    <div className="admin-card">
-      <div className="admin-section-heading">
-        <p className="eyebrow">Lista da casa nova</p>
-        <h2>Presentes</h2>
-        <p>
-          Cadastre cada opção e informe quantas unidades podem ser escolhidas
-          pelos convidados. O link é opcional e aparece como sugestão para o
-          convidado, não como obrigação de onde comprar.
-        </p>
+    <div className="adm-panel">
+      <div className="adm-create" data-open={formOpen || items.length === 0}>
+        <button
+          className="adm-create__toggle"
+          type="button"
+          aria-expanded={formOpen || items.length === 0}
+          onClick={() => setFormOpen((value) => !value)}
+        >
+          <span aria-hidden="true">+</span> Novo presente
+        </button>
+        <div className="adm-create__panel">
+          <div>
+            <form className="adm-create__form adm-create__form--gift" onSubmit={addItem}>
+              <label className="adm-field--wide">
+                <span>Nome do presente</span>
+                <input
+                  type="text"
+                  value={draft.name}
+                  onChange={(event) =>
+                    setDraft({ ...draft, name: event.target.value })
+                  }
+                  placeholder="Ex.: Panela elétrica"
+                  maxLength={80}
+                  required
+                />
+              </label>
+              <label>
+                <span>Quantidade</span>
+                <input
+                  type="number"
+                  value={draft.quantityTotal}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      quantityTotal: Number(event.target.value),
+                    })
+                  }
+                  min={1}
+                  max={999}
+                  required
+                />
+              </label>
+              <label className="adm-field--full">
+                <span>Descrição opcional</span>
+                <input
+                  type="text"
+                  value={draft.description}
+                  onChange={(event) =>
+                    setDraft({ ...draft, description: event.target.value })
+                  }
+                  placeholder="Ex.: Pode ser de qualquer loja."
+                  maxLength={500}
+                />
+              </label>
+              <label className="adm-field--full">
+                <span>Link de referência opcional</span>
+                <input
+                  type="url"
+                  value={draft.referenceUrl}
+                  onChange={(event) =>
+                    setDraft({ ...draft, referenceUrl: event.target.value })
+                  }
+                  placeholder="https://loja.com.br/produto"
+                  maxLength={2048}
+                  inputMode="url"
+                  spellCheck={false}
+                />
+              </label>
+              <button className="btn btn--solid" type="submit" disabled={creating}>
+                {creating ? "Criando…" : "Criar presente"}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={addItem}>
-        <label>
-          Nome do presente
-          <input
-            type="text"
-            value={draft.name}
-            onChange={(event) =>
-              setDraft({ ...draft, name: event.target.value })
-            }
-            placeholder="Ex.: Panela elétrica"
-            maxLength={80}
-            required
-          />
-        </label>
-        <label>
-          Descrição opcional
-          <textarea
-            value={draft.description}
-            onChange={(event) =>
-              setDraft({ ...draft, description: event.target.value })
-            }
-            placeholder="Ex.: Pode ser comprado em qualquer loja."
-            maxLength={500}
-            rows={3}
-          />
-        </label>
-        <label>
-          Link de referência opcional
-          <input
-            type="url"
-            value={draft.referenceUrl}
-            onChange={(event) =>
-              setDraft({ ...draft, referenceUrl: event.target.value })
-            }
-            placeholder="https://loja.com.br/produto"
-            maxLength={2048}
-            inputMode="url"
-            spellCheck={false}
-          />
-        </label>
-        <label>
-          Quantidade disponível
-          <input
-            type="number"
-            value={draft.quantityTotal}
-            onChange={(event) =>
-              setDraft({ ...draft, quantityTotal: Number(event.target.value) })
-            }
-            min={1}
-            max={999}
-            required
-          />
-        </label>
-        <button className="button" type="submit" disabled={saving}>
-          {saving ? "Salvando…" : "Criar presente"}
-        </button>
-      </form>
+      {status === "loading" ? (
+        <ul className="adm-list" aria-busy="true" aria-label="Carregando presentes">
+          {[0, 1, 2].map((index) => (
+            <li className="adm-row adm-row--skeleton" key={index} aria-hidden="true">
+              <span className="skel skel--line" />
+              <span className="skel skel--code" />
+            </li>
+          ))}
+        </ul>
+      ) : items.length === 0 ? (
+        <div className="adm-empty">
+          <strong>Nenhum presente ainda.</strong>
+          <p>Cadastre o primeiro no formulário acima.</p>
+        </div>
+      ) : (
+        <ul className="adm-list adm-list--gifts">
+          {items.map((item) => {
+            const chosen = item.quantityReserved + item.quantityPurchased;
+            const busy = savingId === item.id;
 
-      {message && (
-        <p className="admin-message" role="status" aria-live="polite">
-          {message}
-        </p>
-      )}
-
-      <div className="admin-list">
-        <h2>Presentes criados</h2>
-        {items.length === 0 ? (
-          <p>Nenhum presente foi criado ainda.</p>
-        ) : (
-          <ul>
-            {items.map((item) => {
-              const chosen = item.quantityReserved + item.quantityPurchased;
-
-              if (editingId === item.id) {
-                return (
-                  <li className="gift-edit" key={item.id}>
-                    <form onSubmit={(event) => saveEdit(item, event)}>
-                      <label>
-                        Nome do presente
+            if (editingId === item.id) {
+              return (
+                <li className="adm-row adm-row--editing" key={item.id}>
+                  <form className="adm-edit" onSubmit={(event) => saveEdit(item, event)}>
+                    <div className="adm-edit__grid">
+                      <label className="adm-field--wide">
+                        <span>Nome</span>
                         <input
                           type="text"
                           value={editDraft.name}
                           onChange={(event) =>
-                            setEditDraft({
-                              ...editDraft,
-                              name: event.target.value,
-                            })
+                            setEditDraft({ ...editDraft, name: event.target.value })
                           }
                           maxLength={80}
                           required
                         />
                       </label>
                       <label>
-                        Descrição
-                        <textarea
+                        <span>Quantidade</span>
+                        <input
+                          type="number"
+                          value={editDraft.quantityTotal}
+                          onChange={(event) =>
+                            setEditDraft({
+                              ...editDraft,
+                              quantityTotal: Number(event.target.value),
+                            })
+                          }
+                          min={minimumQuantity(item)}
+                          max={999}
+                          required
+                        />
+                      </label>
+                      <label className="adm-field--full">
+                        <span>Descrição</span>
+                        <input
+                          type="text"
                           value={editDraft.description}
                           onChange={(event) =>
                             setEditDraft({
@@ -261,11 +329,10 @@ export function GiftCreator() {
                             })
                           }
                           maxLength={500}
-                          rows={3}
                         />
                       </label>
-                      <label>
-                        Link de referência
+                      <label className="adm-field--full">
+                        <span>Link de referência</span>
                         <input
                           type="url"
                           value={editDraft.referenceUrl}
@@ -281,90 +348,117 @@ export function GiftCreator() {
                           spellCheck={false}
                         />
                       </label>
-                      <label>
-                        Quantidade total
-                        <input
-                          type="number"
-                          value={editDraft.quantityTotal}
-                          onChange={(event) =>
-                            setEditDraft({
-                              ...editDraft,
-                              quantityTotal: Number(event.target.value),
-                            })
-                          }
-                          min={minimumQuantity(item)}
-                          max={999}
-                          required
-                        />
-                      </label>
-                      {chosen > 0 && (
-                        <p className="gift-edit__hint">
-                          {chosen}{" "}
-                          {chosen === 1
-                            ? "unidade já foi escolhida"
-                            : "unidades já foram escolhidas"}
-                          , então a quantidade total não pode ficar abaixo
-                          disso.
-                        </p>
-                      )}
-                      <div className="gift-edit__actions">
-                        <button
-                          className="button"
-                          type="submit"
-                          disabled={saving}
-                        >
-                          {saving ? "Salvando…" : "Salvar"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(null)}
-                          disabled={saving}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </form>
-                  </li>
-                );
-              }
+                    </div>
 
-              return (
-                <li key={item.id}>
-                  <span>
-                    <strong>{item.name}</strong>
-                    {item.description && <em>{item.description}</em>}
-                    {item.referenceUrl && (
-                      <a
-                        className="gift-reference-link"
-                        href={item.referenceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    {chosen > 0 && (
+                      <p className="adm-edit__hint">
+                        {chosen}{" "}
+                        {chosen === 1
+                          ? "unidade já foi escolhida"
+                          : "unidades já foram escolhidas"}
+                        ; o mínimo é {minimumQuantity(item)}.
+                      </p>
+                    )}
+
+                    <div className="adm-edit__actions">
+                      <button className="btn btn--solid" type="submit" disabled={busy}>
+                        {busy ? "Salvando…" : "Salvar"}
+                      </button>
+                      <button
+                        className="btn btn--quiet"
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        disabled={busy}
                       >
-                        Ver sugestão <span aria-hidden="true">↗</span>
-                      </a>
+                        Cancelar
+                      </button>
+                      <button
+                        className="btn btn--quiet is-danger"
+                        type="button"
+                        onClick={() => archiveItem(item)}
+                        disabled={busy}
+                      >
+                        Arquivar da lista
+                      </button>
+                    </div>
+                  </form>
+                </li>
+              );
+            }
+
+            return (
+              <li
+                className={`adm-row${item.quantityAvailable === 0 ? " is-out" : ""}`}
+                key={item.id}
+              >
+                <div className="adm-row__name">
+                  <strong>{item.name}</strong>
+                  {item.description && <span>{item.description}</span>}
+                  {item.referenceUrl && (
+                    <a
+                      className="adm-row__link"
+                      href={item.referenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Ver sugestão ↗
+                    </a>
+                  )}
+                </div>
+
+                <div className="adm-meter">
+                  <div
+                    className="adm-meter__bar"
+                    role="img"
+                    aria-label={`${item.quantityPurchased} comprados, ${item.quantityReserved} reservados, ${item.quantityAvailable} livres de ${item.quantityTotal}`}
+                  >
+                    <span
+                      className="adm-meter__seg is-purchased"
+                      style={{ flexGrow: item.quantityPurchased }}
+                    />
+                    <span
+                      className="adm-meter__seg is-reserved"
+                      style={{ flexGrow: item.quantityReserved }}
+                    />
+                    <span style={{ flexGrow: item.quantityAvailable }} />
+                  </div>
+                  <span className="adm-meter__label">
+                    {item.quantityAvailable === 0 ? (
+                      "Esgotado na lista"
+                    ) : (
+                      <>
+                        <b>{item.quantityAvailable}</b> de {item.quantityTotal}{" "}
+                        livres
+                      </>
                     )}
                   </span>
-                  <small>
-                    {item.quantityAvailable} de {item.quantityTotal} disponíveis
-                    {item.quantityPurchased > 0
-                      ? ` · ${item.quantityPurchased} compras confirmadas`
-                      : item.quantityReserved > 0
-                        ? ` · ${item.quantityReserved} reservados`
-                        : ""}
-                  </small>
+                </div>
+
+                <div className="adm-row__more">
                   <button
-                    className="gift-edit-trigger"
+                    className="btn btn--quiet"
                     type="button"
                     onClick={() => startEditing(item)}
                   >
                     Editar
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {toast && (
+        <p
+          className="toast"
+          data-tone={toast.error ? "error" : undefined}
+          role={toast.error ? "alert" : "status"}
+          aria-live="polite"
+        >
+          {toast.text}
+        </p>
+      )}
     </div>
   );
 }

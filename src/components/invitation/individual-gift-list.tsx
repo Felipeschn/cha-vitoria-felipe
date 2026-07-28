@@ -26,10 +26,7 @@ type GiftItem = {
   sortOrder: number;
 };
 
-type RealtimeConfig = {
-  key: string;
-  url: string;
-};
+type RealtimeConfig = { key: string; url: string };
 
 type GiftListResponse = {
   error?: string;
@@ -37,16 +34,45 @@ type GiftListResponse = {
   realtime?: RealtimeConfig | null;
 };
 
+type GiftFilter = "all" | "free" | "mine";
+type GiftState = "available" | "mine" | "purchased" | "taken";
+
 type IndividualGiftListProps = {
   displayName: string;
 };
 
+const filters: { label: string; value: GiftFilter }[] = [
+  { label: "Tudo", value: "all" },
+  { label: "Disponíveis", value: "free" },
+  { label: "Minhas escolhas", value: "mine" },
+];
+
+function giftState(item: GiftItem): GiftState {
+  if (item.myReservation?.status === "purchased") return "purchased";
+  if (item.myReservation) return "mine";
+  return item.quantityAvailable < 1 ? "taken" : "available";
+}
+
 function maximumSelectable(item: GiftItem) {
   const ownedReserved =
-    item.myReservation?.status === "reserved"
-      ? item.myReservation.quantity
-      : 0;
+    item.myReservation?.status === "reserved" ? item.myReservation.quantity : 0;
   return Math.min(20, item.quantityAvailable + ownedReserved);
+}
+
+function statusText(item: GiftItem, state: GiftState) {
+  const reservation = item.myReservation;
+
+  if (state === "purchased" && reservation) {
+    return `${reservation.quantity} ${reservation.quantity === 1 ? "unidade comprada" : "unidades compradas"} · compra confirmada`;
+  }
+  if (state === "mine" && reservation) {
+    return `${reservation.quantity} ${reservation.quantity === 1 ? "unidade reservada" : "unidades reservadas"} por você`;
+  }
+  if (state === "taken") return "Escolhido por outro convidado";
+  if (item.quantityTotal > 1) {
+    return `${item.quantityAvailable} de ${item.quantityTotal} disponíveis`;
+  }
+  return "Disponível";
 }
 
 export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
@@ -54,8 +80,10 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
   const [items, setItems] = useState<GiftItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [claimedId, setClaimedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<GiftFilter>("all");
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
 
   const loadItems = useCallback(async () => {
@@ -68,16 +96,14 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
         router.refresh();
         return;
       }
-      if (!response.ok || !data.items) {
-        throw new Error(data.error);
-      }
+      if (!response.ok || !data.items) throw new Error(data.error);
 
-      const items = data.items;
-      setItems(items);
+      const next = data.items;
+      setItems(next);
       setRealtime(data.realtime ?? null);
       setQuantities((current) =>
         Object.fromEntries(
-          items.map((item) => {
+          next.map((item) => {
             const maximum = Math.max(1, maximumSelectable(item));
             const preferred =
               current[item.id] ?? item.myReservation?.quantity ?? 1;
@@ -86,9 +112,7 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
         ),
       );
     } catch {
-      setMessage(
-        "A lista não pôde ser carregada. Tente novamente em instantes.",
-      );
+      setMessage("A lista não pôde ser carregada. Tente novamente em instantes.");
     } finally {
       setLoading(false);
     }
@@ -133,36 +157,35 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
     };
   }, [loadItems, realtime]);
 
-  const summary = useMemo(() => {
-    const mine = items.filter((item) => item.myReservation);
-    return {
-      gifts: mine.length,
-      units: mine.reduce(
-        (total, item) => total + (item.myReservation?.quantity ?? 0),
-        0,
-      ),
-    };
-  }, [items]);
+  useEffect(() => {
+    if (!claimedId) return;
+    const clear = window.setTimeout(() => setClaimedId(null), 900);
+    return () => window.clearTimeout(clear);
+  }, [claimedId]);
 
-  async function leaveInvitation() {
-    setMessage("");
-    await fetch("/api/invitations/access", { method: "DELETE" });
-    router.refresh();
-  }
+  useEffect(() => {
+    if (!message) return;
+    const clear = window.setTimeout(() => setMessage(""), 5_000);
+    return () => window.clearTimeout(clear);
+  }, [message]);
+
+  const visible = useMemo(() => {
+    if (filter === "free") {
+      return items.filter((item) => giftState(item) === "available");
+    }
+    if (filter === "mine") return items.filter((item) => item.myReservation);
+    return items;
+  }, [filter, items]);
 
   function changeQuantity(item: GiftItem, delta: number) {
     const maximum = maximumSelectable(item);
     setQuantities((current) => ({
       ...current,
-      [item.id]: Math.min(
-        Math.max(1, (current[item.id] ?? 1) + delta),
-        maximum,
-      ),
+      [item.id]: Math.min(Math.max(1, (current[item.id] ?? 1) + delta), maximum),
     }));
   }
 
-  async function saveReservation(item: GiftItem) {
-    const quantity = quantities[item.id] ?? 1;
+  async function saveReservation(item: GiftItem, quantity: number) {
     setPendingId(item.id);
     setMessage("");
 
@@ -179,21 +202,21 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
 
+      setClaimedId(item.id);
       setMessage(
         item.myReservation
-          ? `Sua reserva de ${item.name} foi atualizada para ${quantity} ${quantity === 1 ? "unidade" : "unidades"}.`
-          : `${quantity} ${quantity === 1 ? "unidade foi reservada" : "unidades foram reservadas"} para ${displayName}.`,
+          ? `${item.name}: agora são ${quantity} ${quantity === 1 ? "unidade" : "unidades"}.`
+          : `${item.name} reservado para ${displayName}.`,
       );
-      await loadItems();
     } catch (error) {
       setMessage(
         error instanceof Error && error.message
           ? error.message
           : "Não foi possível salvar sua escolha.",
       );
-      await loadItems();
     } finally {
       setPendingId(null);
+      await loadItems();
     }
   }
 
@@ -213,12 +236,12 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
 
+      if (action === "confirm") setClaimedId(item.id);
       setMessage(
         action === "release"
-          ? `${item.name} voltou a ficar disponível para os outros convidados.`
-          : `A compra de ${item.name} foi confirmada. Obrigado pelo carinho!`,
+          ? `${item.name} voltou para a lista.`
+          : `Compra de ${item.name} confirmada. Obrigado pelo carinho!`,
       );
-      await loadItems();
     } catch (error) {
       setMessage(
         error instanceof Error && error.message
@@ -227,229 +250,208 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
       );
     } finally {
       setPendingId(null);
+      await loadItems();
     }
   }
 
   return (
-    <div className="individual-gifts" id="lista-presentes">
-      <div className="individual-gifts__intro">
-        <p className="eyebrow">Escolha onde comprar</p>
+    <section className="ledger" id="lista-presentes">
+      <div className="ledger__intro">
+        <p className="eyebrow">Escolha com calma</p>
         <h3>Lista de presentes</h3>
         <p>
-          Reserve apenas a quantidade que deseja presentear. Sua escolha fica
-          guardada no convite e aparece em qualquer aparelho em que você usar o
-          mesmo código. Quando houver um link, ele é só uma sugestão do modelo
-          que imaginamos — fique à vontade para comprar onde preferir.
+          Reserve só a quantidade que quiser presentear. Sua escolha fica no
+          convite e reaparece em qualquer aparelho com o mesmo código. Os links
+          são apenas referências — compre onde preferir.
         </p>
       </div>
 
+      <div className="ledger__filters" role="group" aria-label="Filtrar lista">
+        {filters.map((option) => (
+          <button
+            className="chip"
+            key={option.value}
+            type="button"
+            aria-pressed={filter === option.value}
+            onClick={() => setFilter(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
-        <div className="gift-list-loading" role="status">
-          <span aria-hidden="true" />
-          Preparando sua lista…
-        </div>
-      ) : (
-        <>
-          <div className="gift-identity">
-            <div className="gift-identity__copy">
-              <span className="gift-identity__icon" aria-hidden="true">
-                ♡
-              </span>
-              <div>
-                <small>Lista de</small>
-                <strong>{displayName}</strong>
+        <ul className="rows" aria-busy="true" aria-label="Carregando a lista">
+          {[0, 1, 2, 3].map((index) => (
+            <li className="row row--skeleton" key={index} aria-hidden="true">
+              <span className="row__mark" />
+              <div className="row__body">
+                <span className="skel skel--title" />
+                <span className="skel skel--meta" />
               </div>
-            </div>
-            <div className="gift-identity__summary">
-              <span>
-                <strong>{summary.gifts}</strong>{" "}
-                {summary.gifts === 1 ? "presente" : "presentes"}
-              </span>
-              <span>
-                <strong>{summary.units}</strong>{" "}
-                {summary.units === 1 ? "unidade" : "unidades"}
-              </span>
-            </div>
-            <button type="button" onClick={leaveInvitation}>
-              Trocar convite
-            </button>
-          </div>
+            </li>
+          ))}
+        </ul>
+      ) : visible.length === 0 ? (
+        <p className="ledger__empty">
+          {items.length === 0
+            ? "A lista de presentes ainda está vazia."
+            : filter === "mine"
+              ? "Você ainda não escolheu nenhum presente."
+              : "Nenhum presente disponível no momento."}
+        </p>
+      ) : (
+        <ul className="rows">
+          {visible.map((item, index) => {
+            const state = giftState(item);
+            const reservation = item.myReservation;
+            const isPending = pendingId === item.id;
+            const selected = quantities[item.id] ?? 1;
+            const maximum = maximumSelectable(item);
+            const quantityChanged =
+              state === "mine" && reservation?.quantity !== selected;
 
-          {items.length === 0 ? (
-            <p className="gift-list-state">
-              A lista de presentes ainda está vazia.
-            </p>
-          ) : (
-            <div className="checklist" aria-label="Lista de presentes">
-              {items.map((item) => {
-                const reservation = item.myReservation;
-                const isPending = pendingId === item.id;
-                const isUnavailable =
-                  item.quantityAvailable < 1 && !reservation;
-                const selectedQuantity = quantities[item.id] ?? 1;
-                const maximum = maximumSelectable(item);
-                const quantityChanged =
-                  reservation?.status === "reserved" &&
-                  reservation.quantity !== selectedQuantity;
+            return (
+              <li
+                className="row"
+                data-state={state}
+                data-pending={isPending || undefined}
+                data-claimed={claimedId === item.id || undefined}
+                style={{ "--i": index } as React.CSSProperties}
+                key={item.id}
+              >
+                <span className="row__mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    {state === "mine" && <circle cx="12" cy="12" r="4.5" />}
+                    {state === "purchased" && (
+                      <path d="m6.5 12.5 3.5 3.5 7.5-8" pathLength={1} />
+                    )}
+                    {state === "taken" && <path d="M7.5 16.5 16.5 7.5" />}
+                  </svg>
+                </span>
 
-                return (
-                  <article
-                    className={`checklist__item${
-                      reservation ? " is-mine" : ""
-                    }${isUnavailable ? " is-reserved" : ""}`}
-                    key={item.id}
-                  >
-                    <div
-                      className={`checklist__heading${
-                        reservation ? " has-check" : ""
-                      }`}
+                <div className="row__body">
+                  <h4 className="row__name">{item.name}</h4>
+                  {item.description && state !== "taken" && (
+                    <p className="row__desc">{item.description}</p>
+                  )}
+                  <p className="row__meta" id={`gs-${item.id}`}>
+                    <span className="row__status">{statusText(item, state)}</span>
+                    {item.referenceUrl && (
+                      <a
+                        className="row__link"
+                        href={item.referenceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Ver sugestão de ${item.name} — é só uma referência, compre onde preferir`}
+                      >
+                        Ver sugestão
+                      </a>
+                    )}
+                  </p>
+                </div>
+
+                <div className="row__act">
+                  {state === "available" && (
+                    <button
+                      className="btn btn--solid btn--reserve"
+                      type="button"
+                      onClick={() => saveReservation(item, 1)}
+                      disabled={isPending}
+                      aria-describedby={`gs-${item.id}`}
+                      aria-label={`Reservar ${item.name}`}
                     >
-                      {reservation && (
-                        <span className="checklist__mark" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="m6.5 12.5 3.5 3.5 7.5-8" />
-                          </svg>
-                        </span>
-                      )}
-                      <div className="checklist__copy">
-                        <strong>{item.name}</strong>
-                        {item.description && <p>{item.description}</p>}
-                        {item.referenceUrl && (
-                          <a
-                            className="checklist__reference"
-                            href={item.referenceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Ver sugestão <span aria-hidden="true">↗</span>
-                          </a>
-                        )}
-                        <span>
-                          {reservation?.status === "purchased"
-                            ? `${reservation.quantity} ${reservation.quantity === 1 ? "unidade comprada" : "unidades compradas"}`
-                            : reservation
-                              ? `${reservation.quantity} ${reservation.quantity === 1 ? "unidade reservada" : "unidades reservadas"} por você`
-                              : isUnavailable
-                                ? "Todas as unidades já foram escolhidas"
-                                : item.quantityTotal > 1
-                                  ? `${item.quantityAvailable} de ${item.quantityTotal} disponíveis`
-                                  : "Disponível"}
-                        </span>
-                      </div>
-                    </div>
+                      <span className="btn__glyph" aria-hidden="true">
+                        +
+                      </span>
+                      <span className="btn__label">Reservar</span>
+                    </button>
+                  )}
+                  {state === "mine" && (
+                    <button
+                      className="btn btn--solid"
+                      type="button"
+                      onClick={() => updateReservation(item, "confirm")}
+                      disabled={isPending || quantityChanged}
+                    >
+                      Confirmar que comprei
+                    </button>
+                  )}
+                  {state === "purchased" && (
+                    <button
+                      className="btn btn--cancel"
+                      type="button"
+                      onClick={() => updateReservation(item, "release")}
+                      disabled={isPending}
+                    >
+                      Cancelar escolha
+                    </button>
+                  )}
+                </div>
 
-                    {reservation?.status === "purchased" ? (
-                      <div className="gift-purchased-state">
-                        <span>Compra confirmada</span>
+                {/* A gaveta abre sozinha quando o presente é seu: quem reservou
+                    já está decidindo quantidade, não navegando. */}
+                <div className={`row__drawer${state === "mine" ? " is-open" : ""}`}>
+                  <div className="row__drawer-clip">
+                    <div className="row__drawer-inner">
+                      <div
+                        className="stepper"
+                        role="group"
+                        aria-label={`Quantidade de ${item.name}`}
+                      >
                         <button
                           type="button"
-                          onClick={() => updateReservation(item, "release")}
-                          disabled={isPending}
+                          onClick={() => changeQuantity(item, -1)}
+                          disabled={selected <= 1 || isPending}
+                          aria-label={`Diminuir quantidade de ${item.name}`}
                         >
-                          {isPending ? "Atualizando…" : "Cancelar escolha"}
+                          −
+                        </button>
+                        <span className="stepper__value" aria-hidden="true">
+                          <span key={selected}>{selected}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => changeQuantity(item, 1)}
+                          disabled={selected >= maximum || isPending}
+                          aria-label={`Aumentar quantidade de ${item.name}`}
+                        >
+                          +
                         </button>
                       </div>
-                    ) : isUnavailable ? (
-                      <div className="gift-unavailable-state">
-                        Escolhido por outro convidado
-                      </div>
-                    ) : (
-                      <div className="gift-choice">
-                        <div
-                          className="quantity-stepper"
-                          aria-label={`Quantidade de ${item.name}`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => changeQuantity(item, -1)}
-                            disabled={selectedQuantity <= 1 || isPending}
-                            aria-label={`Diminuir quantidade de ${item.name}`}
-                          >
-                            −
-                          </button>
-                          <span>
-                            <strong>{selectedQuantity}</strong>
-                            <small>
-                              {selectedQuantity === 1 ? "unidade" : "unidades"}
-                            </small>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => changeQuantity(item, 1)}
-                            disabled={
-                              selectedQuantity >= maximum || isPending
-                            }
-                            aria-label={`Aumentar quantidade de ${item.name}`}
-                          >
-                            +
-                          </button>
-                        </div>
 
-                        <div className="gift-choice__actions">
-                          {reservation ? (
-                            <>
-                              {quantityChanged && (
-                                <button
-                                  className="gift-action-primary"
-                                  type="button"
-                                  onClick={() => saveReservation(item)}
-                                  disabled={isPending}
-                                >
-                                  {isPending
-                                    ? "Salvando…"
-                                    : "Atualizar quantidade"}
-                                </button>
-                              )}
-                              <button
-                                className="gift-action-primary"
-                                type="button"
-                                onClick={() =>
-                                  updateReservation(item, "confirm")
-                                }
-                                disabled={isPending || quantityChanged}
-                              >
-                                {isPending
-                                  ? "Atualizando…"
-                                  : "Confirmar que comprei"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateReservation(item, "release")
-                                }
-                                disabled={isPending}
-                              >
-                                Cancelar reserva
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              className="gift-action-primary"
-                              type="button"
-                              onClick={() => saveReservation(item)}
-                              disabled={isPending}
-                            >
-                              {isPending
-                                ? "Reservando…"
-                                : `Reservar ${selectedQuantity}`}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </>
+                      {quantityChanged && (
+                        <button
+                          className="btn btn--solid"
+                          type="button"
+                          onClick={() => saveReservation(item, selected)}
+                          disabled={isPending}
+                        >
+                          Atualizar quantidade
+                        </button>
+                      )}
+                      <button
+                        className="btn btn--cancel"
+                        type="button"
+                        onClick={() => updateReservation(item, "release")}
+                        disabled={isPending}
+                      >
+                        Cancelar reserva
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {message && (
-        <p className="gift-list-message" role="status" aria-live="polite">
+        <p className="toast" role="status" aria-live="polite">
           {message}
         </p>
       )}
-    </div>
+    </section>
   );
 }

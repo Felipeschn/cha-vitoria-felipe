@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { GiftCreator } from "@/components/invitation/gift-creator";
-import { InvitationManager } from "@/components/invitation/invitation-manager";
+import { AdminDashboard } from "@/components/invitation/admin-dashboard";
 import { readInvitationSessionFromCookies } from "@/lib/invitations/server";
 
 export const metadata: Metadata = {
-  title: "Presentes e convites",
+  title: "Painel",
   description: "Área privada do casal para presentes e convites.",
   robots: { index: false, follow: false },
 };
@@ -19,22 +18,16 @@ export default async function CreateGiftsPage() {
   if (!session?.invitation.isAdmin) redirect("/");
 
   return (
-    <main className="admin-page">
-      <div className="admin-shell">
-        <p className="eyebrow">Vitória &amp; Felipe</p>
-        <h1>Presentes e convites</h1>
-        <p className="admin-lead">
-          Crie os presentes da lista e os códigos que identificam cada pessoa,
-          casal ou família.
-        </p>
-        <div className="admin-dashboard">
-          <InvitationManager />
-          <GiftCreator />
-        </div>
-        <Link className="admin-back" href="/">
-          Voltar ao convite
+    <main className="adm">
+      <header className="adm__head">
+        <p className="eyebrow">Casa nova</p>
+        <h1>Painel</h1>
+        <Link className="adm__exit" href="/">
+          Ver o convite ↗
         </Link>
-      </div>
+      </header>
+
+      <AdminDashboard />
     </main>
   );
 }

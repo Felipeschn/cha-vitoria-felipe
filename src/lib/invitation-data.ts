@@ -1,69 +1,113 @@
 export type InvitationGroup = "familia" | "amigos";
 
 type InvitationDetails = {
-  audience: string;
-  dateLong: string;
-  dateShort: string;
+  /** Ficha técnica do hero: linha forte e linha de apoio da célula "quando". */
+  specWhen: string;
+  specWhenNote: string;
+  /** Lockup da data. `day` nulo quando a data ainda não existe. */
+  weekday: string;
+  day: string | null;
+  monthYear: string;
+  time: string;
   dateTime: string | null;
+  /** Nota abaixo do horário. */
+  whenNote: string;
+  rsvpEyebrow: string;
+  rsvpTitle: string;
   rsvpCopy: string;
   rsvpLabel: string;
   rsvpMessage: string;
-  rsvpTitle: string;
-  time: string;
-  whenCopy: string;
+  rsvpNote: string;
 };
 
+export const heroCopy = {
+  eyebrow: "Chá de casa nova",
+  titleLead: "Casa nova,",
+  titleAccent: "porta aberta.",
+  deck: "Uma casa nova pede gente dentro. Vem inaugurar a nossa.",
+} as const;
+
 export const sharedEvent = {
-  venue: "Condomínio Terrace — Salão de Festas",
+  venue: "Condomínio Terrace",
+  space: "Salão de Festas",
   address: "R. Pedro Álvares Cabral, 279",
   neighborhood: "Nossa Senhora das Graças — Canoas/RS",
+  // Sem `·` interno: a ficha técnica do hero já usa esse separador entre o
+  // espaço e a cidade, e dois seguidos ficam ilegíveis.
+  city: "Canoas, RS",
   mapUrl:
     "https://www.google.com/maps/search/?api=1&query=Condom%C3%ADnio%20Terrace%2C%20R.%20Pedro%20%C3%81lvares%20Cabral%2C%20279%2C%20Canoas%2C%20RS",
+  // Embed público do Google Maps: sem chave de API e sem script externo.
+  // Aponta direto para o destino final — a forma `?q=…&output=embed` responde
+  // 301 com `X-Frame-Options: SAMEORIGIN`, e pular o salto evita depender de
+  // como cada navegador trata o cabeçalho no redirect.
+  mapEmbedUrl:
+    "https://www.google.com/maps/embed?origin=mfe&pb=!1m2!2m1!1sCondom%C3%ADnio+Terrace,+R.+Pedro+%C3%81lvares+Cabral,+279,+Nossa+Senhora+das+Gra%C3%A7as,+Canoas+-+RS",
 } as const;
 
 export const invitationGroups = {
   familia: {
-    audience: "Um convite para a família",
-    dateShort: "20 SETEMBRO",
-    dateLong: "20 de setembro de 2026",
-    dateTime: "2026-09-20T15:00:00-03:00",
+    specWhen: "Domingo, 20 de setembro",
+    specWhenNote: "2026 · a partir das 15h",
+    weekday: "domingo",
+    day: "20",
+    monthYear: "setembro de 2026",
     time: "15h",
-    whenCopy: "20 de setembro de 2026",
+    dateTime: "2026-09-20T15:00:00-03:00",
+    whenNote: "A gente fica por lá a tarde toda.",
+    rsvpEyebrow: "Confirmação",
     rsvpTitle: "Você vem?",
     rsvpCopy:
-      "Ficaremos muito felizes em celebrar com você. Confirme sua presença para prepararmos tudo com carinho.",
+      "Diz pra gente com alguma antecedência — assim a comida e o gelo dão conta.",
     rsvpLabel: "Confirmar pelo WhatsApp",
     rsvpMessage:
       "Oi, Vitória e Felipe! Confirmo minha presença no chá de casa nova da família, dia 20 de setembro, às 15h. 💚",
+    rsvpNote: "Se aparecer um imprevisto, avisa também. Sem cerimônia.",
   },
   amigos: {
-    audience: "Um convite para amigos queridos",
-    dateShort: "DATA EM BREVE",
-    dateLong: "Data em breve",
-    dateTime: null,
+    specWhen: "Ainda escolhendo o dia",
+    specWhenNote: "Avisamos assim que estiver de pé",
+    weekday: "ainda escolhendo o dia",
+    day: null,
+    monthYear: "em breve · 2026",
     time: "Horário a confirmar",
-    whenCopy: "A data será confirmada em breve",
+    dateTime: null,
+    whenNote: "Avisamos assim que estiver de pé.",
+    rsvpEyebrow: "Fique por perto",
     rsvpTitle: "Queremos você com a gente",
     rsvpCopy:
-      "Estamos organizando uma segunda comemoração para os amigos próximos. Assim que a data estiver definida, avisaremos por aqui.",
+      "Estamos organizando uma segunda comemoração para os amigos próximos. Assim que a data estiver definida, avisamos por aqui.",
     rsvpLabel: "Quero receber a data",
     rsvpMessage:
       "Oi, Vitória e Felipe! Quero receber a data do chá de casa nova com os amigos. 💚",
+    rsvpNote: "Pode chamar quando quiser saber como estão as obras.",
   },
 } as const satisfies Record<InvitationGroup, InvitationDetails>;
 
+/**
+ * `logo` aponta para um arquivo em `public/logos/`. Sem ele, o cartão mostra o
+ * nome da loja em tipografia de display.
+ */
 export const giftLists = [
   {
     name: "Camicado",
-    description: "Você pode comprar pelo site ou em uma loja física da Camicado.",
-    action: "Ver lista",
+    logo: "/logos/camicado.png" as string | null,
+    label: "Lista de presentes",
+    description:
+      "Nossa lista está montada no site. Dá para comprar de casa e receber em casa.",
+    action: "Abrir a lista",
+    tone: "paper",
     url: "https://lista.camicado.com.br/livi",
   },
   {
     name: "Casa Maria",
+    logo: "/logos/casa-maria.png" as string | null,
+    label: "Lista de presentes",
     description:
-      "A compra é feita somente nas lojas físicas. Informe a lista ao atendente, que dará baixa no presente pelo sistema.",
-    action: "Ver detalhes",
+      "A lista fica na loja física. É só dizer nosso nome no balcão que o atendente encontra.",
+    action: null,
+    note: "Só na loja física",
+    tone: "forest",
     url: "https://bazarcasamaria.com.br/lista-de-presente-individual/?gift_list=cha-de-casa-nova-vitoria-e-felipe",
   },
 ] as const;
@@ -71,4 +115,6 @@ export const giftLists = [
 export const pixDetails = {
   key: "6b74c209-5149-4efb-8e49-1d57b41e34bf",
   holder: "Vitória Moreira Padilha",
+  kind: "Chave aleatória",
+  logo: "/logos/pix.png",
 } as const;

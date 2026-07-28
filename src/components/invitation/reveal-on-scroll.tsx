@@ -4,10 +4,9 @@ import { useEffect } from "react";
 
 export function RevealOnScroll() {
   useEffect(() => {
-    const root = document.documentElement;
-    const targets = document.querySelectorAll<HTMLElement>("[data-reveal]");
-
-    root.classList.add("motion-ready");
+    // A classe já entrou no <head>, antes do paint. Se não está aqui, é
+    // movimento reduzido — e nesse caso tudo já nasce visível.
+    if (!document.documentElement.classList.contains("motion-ready")) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -18,15 +17,21 @@ export function RevealOnScroll() {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.14, rootMargin: "0px 0px -8%" },
+      // A seção é o gatilho, não o alvo: quem se move são os filhos. Com
+      // threshold 0 e margem inferior, seções altas disparam igual às baixas.
+      { threshold: 0, rootMargin: "0px 0px -12% 0px" },
     );
 
-    targets.forEach((target) => observer.observe(target));
+    document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((section) => {
+      section
+        .querySelectorAll<HTMLElement>("[data-reveal-item]")
+        .forEach((item, index) => {
+          item.style.setProperty("--reveal-index", String(Math.min(index, 7)));
+        });
+      observer.observe(section);
+    });
 
-    return () => {
-      observer.disconnect();
-      root.classList.remove("motion-ready");
-    };
+    return () => observer.disconnect();
   }, []);
 
   return null;
