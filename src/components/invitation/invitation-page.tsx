@@ -244,7 +244,9 @@ export function InvitationPage({
                   )}
                 </h3>
                 <p className="way__desc">{list.description}</p>
-                {list.action ? (
+                {/* Link e aviso não são alternativas: a Casa Maria tem os dois,
+                    porque o site dela mostra a lista mas não a vende. */}
+                {list.action && (
                   <a
                     className="way__go"
                     href={list.url}
@@ -253,9 +255,8 @@ export function InvitationPage({
                   >
                     {list.action} <i aria-hidden="true">↗</i>
                   </a>
-                ) : (
-                  <span className="way__tag">{list.note}</span>
                 )}
+                {list.note && <span className="way__tag">{list.note}</span>}
               </li>
             ))}
 

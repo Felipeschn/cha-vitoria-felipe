@@ -96,6 +96,8 @@ export type Database = {
           is_active: boolean
           is_admin: boolean
           is_confirmed: boolean
+          is_sent: boolean
+          sent_at: string | null
           session_version: number
           updated_at: string
         }
@@ -112,6 +114,8 @@ export type Database = {
           is_active?: boolean
           is_admin?: boolean
           is_confirmed?: boolean
+          is_sent?: boolean
+          sent_at?: string | null
           session_version?: number
           updated_at?: string
         }
@@ -128,6 +132,8 @@ export type Database = {
           is_active?: boolean
           is_admin?: boolean
           is_confirmed?: boolean
+          is_sent?: boolean
+          sent_at?: string | null
           session_version?: number
           updated_at?: string
         }
@@ -254,6 +260,10 @@ export type Database = {
       }
       set_gift_invitation_confirmed: {
         Args: { p_invitation_id: string; p_is_confirmed: boolean }
+        Returns: boolean
+      }
+      set_gift_invitation_sent: {
+        Args: { p_invitation_id: string; p_is_sent: boolean }
         Returns: boolean
       }
       set_gift_reservation_quantity: {

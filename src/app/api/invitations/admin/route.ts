@@ -20,6 +20,7 @@ type AdminPayload = {
   confirmed?: unknown;
   displayName?: unknown;
   id?: unknown;
+  sent?: unknown;
 };
 
 const uuidPattern =
@@ -125,7 +126,7 @@ async function loadInvitations() {
       supabase
         .from("gift_invitations")
         .select(
-          "id,display_name,audience,code_ciphertext,code_hint,is_confirmed,confirmed_at,session_version,created_at",
+          "id,display_name,audience,code_ciphertext,code_hint,is_confirmed,confirmed_at,is_sent,sent_at,session_version,created_at",
         )
         .eq("is_admin", false)
         .order("audience")
@@ -188,6 +189,8 @@ async function loadInvitations() {
       displayName: invitation.display_name,
       id: invitation.id,
       reservations,
+      sent: invitation.is_sent,
+      sentAt: invitation.sent_at,
       sessionVersion: invitation.session_version,
     };
   });
@@ -247,20 +250,6 @@ export async function POST(request: NextRequest) {
       return json({ invitations: await loadInvitations() }, 201);
     }
 
-    if (action === "rotate") {
-      const id = requireId(payload.id);
-      const code = createCodeRecord();
-      const { error } = await supabase.rpc("rotate_gift_invitation_code", {
-        p_code_ciphertext: code.codeCiphertext,
-        p_code_hash: code.codeHash,
-        p_code_hint: code.codeHint,
-        p_invitation_id: id,
-      });
-      if (error) throw mapDatabaseError(error);
-
-      return json({ invitations: await loadInvitations() });
-    }
-
     if (action === "delete") {
       const id = requireId(payload.id);
       const { error } = await supabase.rpc("delete_gift_invitation", {
@@ -279,6 +268,20 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase.rpc("set_gift_invitation_confirmed", {
         p_invitation_id: id,
         p_is_confirmed: payload.confirmed,
+      });
+      if (error) throw mapDatabaseError(error);
+
+      return json({ invitations: await loadInvitations() });
+    }
+
+    if (action === "setSent") {
+      const id = requireId(payload.id);
+      if (typeof payload.sent !== "boolean") {
+        throw new AdminError("Estado de envio inválido.", 400);
+      }
+      const { error } = await supabase.rpc("set_gift_invitation_sent", {
+        p_invitation_id: id,
+        p_is_sent: payload.sent,
       });
       if (error) throw mapDatabaseError(error);
 

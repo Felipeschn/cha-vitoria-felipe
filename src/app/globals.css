@@ -227,6 +227,9 @@ h1, h2, h3, h4 {
 .btn__icon { flex: none; }
 .btn.is-done { border-color: var(--moss); background: var(--moss); color: var(--paper); }
 .btn.is-danger { color: var(--brick); }
+/* Numa fileira de botões discretos, o principal precisa de borda e cor cheia
+   para não sumir — sem virar sólido, que gritaria dentro de cada linha. */
+.btn.is-primary { border-color: var(--line-strong); color: var(--forest); }
 .btn:disabled { cursor: default; opacity: .45; }
 .btn__glyph { display: none; font-size: 1.4rem; line-height: 1; }
 
@@ -786,6 +789,10 @@ h1, h2, h3, h4 {
 /* Empurra a ação para a base: os três cartões terminam alinhados mesmo com
    descrições de tamanhos diferentes. */
 .way__go, .way__tag { margin-top: auto; align-self: flex-start; }
+/* Com os dois no mesmo cartão, só o primeiro empurra. Dois `margin-top: auto`
+   irmãos dividiriam o espaço livre entre si e separariam o par que precisa ser
+   lido junto. */
+.way__go + .way__tag { margin-top: .7rem; }
 
 .way__go {
   display: inline-flex;
@@ -829,6 +836,10 @@ h1, h2, h3, h4 {
 .way--forest .way__label { background: rgba(242, 234, 221, .14); color: var(--wood); }
 .way--forest .way__name { color: var(--beige); }
 .way--forest .way__desc { color: var(--on-forest); }
+/* O estado de repouso faltava: este cartão nunca tinha tido link, e sem cor
+   própria o texto e a borda saíam escuros sobre o verde-escuro. O hover já
+   existia logo abaixo, esperando por ele. */
+.way--forest .way__go { color: var(--beige); }
 .way--forest .way__tag { background: rgba(242, 234, 221, .12); color: var(--wood); }
 
 /* — tom 3: madeira — */
