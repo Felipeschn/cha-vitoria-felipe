@@ -131,6 +131,23 @@ export function InvitationPage({
                     <span>{event.time}</span>
                   )}
                 </p>
+
+                {/* Versão de celular. Só uma das duas fica visível, e
+                    `display: none` também a tira do leitor de tela — ninguém
+                    ouve a data duas vezes. */}
+                <p className="date-compact">
+                  {event.dateTime ? (
+                    <time className="date-compact__main" dateTime={event.dateTime}>
+                      {event.compactDate}
+                    </time>
+                  ) : (
+                    <span className="date-compact__main">{event.compactDate}</span>
+                  )}
+                  <span className="date-compact__note">
+                    {event.compactDateNote}
+                  </span>
+                </p>
+
                 <p className="ww__note">{event.whenNote}</p>
               </div>
             </div>

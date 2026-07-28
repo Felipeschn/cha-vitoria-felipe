@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type AudienceFilter = "todos" | "familia" | "amigos";
 
@@ -65,23 +72,29 @@ export function InvitationManager({ onCount }: InvitationManagerProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const request = useCallback(
-    async (payload: Record<string, unknown>) => {
-      const response = await fetch("/api/invitations/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await response.json()) as InvitationResponse;
-      if (!response.ok || !data.invitations) {
-        throw new Error(data.error || "Não foi possível carregar os convites.");
-      }
-      setInvitations(data.invitations);
-      onCount?.(data.invitations.length);
-      return data.invitations;
-    },
-    [onCount],
-  );
+  // `onCount` sai das dependências por referência. Ele avisa a contagem para
+  // quem renderiza este painel, então mantê-lo como dependência de `request`
+  // faria a carga inicial se reagendar toda vez que o pai re-renderizasse — e
+  // é a própria carga que provoca esse re-render.
+  const onCountRef = useRef(onCount);
+  useEffect(() => {
+    onCountRef.current = onCount;
+  });
+
+  const request = useCallback(async (payload: Record<string, unknown>) => {
+    const response = await fetch("/api/invitations/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json()) as InvitationResponse;
+    if (!response.ok || !data.invitations) {
+      throw new Error(data.error || "Não foi possível carregar os convites.");
+    }
+    setInvitations(data.invitations);
+    onCountRef.current?.(data.invitations.length);
+    return data.invitations;
+  }, []);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => {

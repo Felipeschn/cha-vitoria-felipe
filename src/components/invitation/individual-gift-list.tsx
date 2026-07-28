@@ -85,6 +85,9 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<GiftFilter>("all");
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
+  // Presente cujo seletor de quantidade está aberto. Nada foi gravado ainda:
+  // enquanto ele está aqui, a reserva só existe na tela.
+  const [choosingId, setChoosingId] = useState<string | null>(null);
 
   const loadItems = useCallback(async () => {
     try {
@@ -100,7 +103,17 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
 
       const next = data.items;
       setItems(next);
-      setRealtime(data.realtime ?? null);
+      // A configuração chega igual em toda resposta, mas num objeto novo. Trocar
+      // o estado por causa disso derrubaria e reabriria o canal do Realtime a
+      // cada carga — inclusive nas de 30 em 30 segundos —, e mudanças que
+      // caíssem na janela entre uma inscrição e outra se perderiam.
+      setRealtime((current) => {
+        const config = data.realtime ?? null;
+        if (!config) return current === null ? current : null;
+        return current?.key === config.key && current.url === config.url
+          ? current
+          : config;
+      });
       setQuantities((current) =>
         Object.fromEntries(
           next.map((item) => {
@@ -120,7 +133,12 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadItems(), 0);
-    const interval = window.setInterval(() => void loadItems(), 30_000);
+    // Aba escondida não precisa de lista atualizada: a volta para ela já dispara
+    // uma carga logo abaixo. Sem essa checagem, cada convidado com o convite
+    // aberto em segundo plano continuaria consultando o servidor a cada 30s.
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadItems();
+    }, 30_000);
     const refreshVisible = () => {
       if (document.visibilityState === "visible") void loadItems();
     };
@@ -185,6 +203,39 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
     }));
   }
 
+  /**
+   * Reservar acontece em dois tempos: o primeiro toque abre o seletor e não
+   * grava nada, o segundo grava a quantidade escolhida. Antes o primeiro toque
+   * já reservava uma unidade, e quem queria duas descobria isso depois,
+   * corrigindo uma reserva que nunca pediu.
+   *
+   * Presente com uma unidade disponível é a exceção: não há o que escolher, e
+   * um seletor travado em 1 só acrescentaria um toque para dizer o óbvio.
+   */
+  function reserve(item: GiftItem) {
+    if (maximumSelectable(item) <= 1) {
+      void saveReservation(item, 1);
+      return;
+    }
+    if (choosingId === item.id) {
+      void saveReservation(item, quantities[item.id] ?? 1);
+      return;
+    }
+
+    // A escolha começa sempre em 1, e não no número que sobrou de uma abertura
+    // anterior que a pessoa cancelou.
+    setQuantities((current) => ({ ...current, [item.id]: 1 }));
+    setChoosingId(item.id);
+    setMessage("");
+  }
+
+  // Um seletor aberto num presente que sai da vista pelo filtro voltaria aberto
+  // depois. Some junto com a mudança que o escondeu.
+  function changeFilter(next: GiftFilter) {
+    setFilter(next);
+    setChoosingId(null);
+  }
+
   async function saveReservation(item: GiftItem, quantity: number) {
     setPendingId(item.id);
     setMessage("");
@@ -203,10 +254,14 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
       if (!response.ok) throw new Error(data.error);
 
       setClaimedId(item.id);
+      // Só fecha o seletor quando o servidor aceitou. Se a quantidade não
+      // couber mais, ele continua aberto no número que a pessoa escolheu,
+      // pronto para ajustar.
+      setChoosingId(null);
       setMessage(
         item.myReservation
           ? `${item.name}: agora são ${quantity} ${quantity === 1 ? "unidade" : "unidades"}.`
-          : `${item.name} reservado para ${displayName}.`,
+          : `${quantity} ${quantity === 1 ? "unidade" : "unidades"} de ${item.name} ${quantity === 1 ? "reservada" : "reservadas"} para ${displayName}.`,
       );
     } catch (error) {
       setMessage(
@@ -273,7 +328,7 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
             key={option.value}
             type="button"
             aria-pressed={filter === option.value}
-            onClick={() => setFilter(option.value)}
+            onClick={() => changeFilter(option.value)}
           >
             {option.label}
           </button>
@@ -310,11 +365,15 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
             const maximum = maximumSelectable(item);
             const quantityChanged =
               state === "mine" && reservation?.quantity !== selected;
+            // Se o presente foi levado por outra pessoa enquanto o seletor
+            // estava aberto, ele não fica aberto sobre uma linha esgotada.
+            const choosing = state === "available" && choosingId === item.id;
 
             return (
               <li
                 className="row"
                 data-state={state}
+                data-choosing={choosing || undefined}
                 data-pending={isPending || undefined}
                 data-claimed={claimedId === item.id || undefined}
                 style={{ "--i": index } as React.CSSProperties}
@@ -354,17 +413,34 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
                 <div className="row__act">
                   {state === "available" && (
                     <button
-                      className="btn btn--solid btn--reserve"
+                      // Escolhendo, o rótulo é longo e precisa aparecer inteiro:
+                      // sem `btn--reserve` ele deixa de virar o alvo circular do
+                      // celular, que esconde o texto.
+                      className={`btn btn--solid${choosing ? "" : " btn--reserve"}`}
                       type="button"
-                      onClick={() => saveReservation(item, 1)}
+                      onClick={() => reserve(item)}
                       disabled={isPending}
                       aria-describedby={`gs-${item.id}`}
-                      aria-label={`Reservar ${item.name}`}
+                      aria-expanded={maximum > 1 ? choosing : undefined}
+                      aria-label={
+                        choosing
+                          ? `Reservar ${selected} ${selected === 1 ? "unidade" : "unidades"} de ${item.name}`
+                          : `Reservar ${item.name}`
+                      }
                     >
-                      <span className="btn__glyph" aria-hidden="true">
-                        +
-                      </span>
-                      <span className="btn__label">Reservar</span>
+                      {choosing ? (
+                        <span className="btn__label">
+                          Reservar {selected}{" "}
+                          {selected === 1 ? "unidade" : "unidades"}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="btn__glyph" aria-hidden="true">
+                            +
+                          </span>
+                          <span className="btn__label">Reservar</span>
+                        </>
+                      )}
                     </button>
                   )}
                   {state === "mine" && (
@@ -390,8 +466,11 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
                 </div>
 
                 {/* A gaveta abre sozinha quando o presente é seu: quem reservou
-                    já está decidindo quantidade, não navegando. */}
-                <div className={`row__drawer${state === "mine" ? " is-open" : ""}`}>
+                    já está decidindo quantidade, não navegando. Escolhendo, ela
+                    é o próprio seletor — a reserva ainda não existe. */}
+                <div
+                  className={`row__drawer${choosing || state === "mine" ? " is-open" : ""}`}
+                >
                   <div className="row__drawer-clip">
                     <div className="row__drawer-inner">
                       <div
@@ -420,24 +499,37 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
                         </button>
                       </div>
 
-                      {quantityChanged && (
+                      {choosing ? (
                         <button
-                          className="btn btn--solid"
+                          className="btn btn--quiet"
                           type="button"
-                          onClick={() => saveReservation(item, selected)}
+                          onClick={() => setChoosingId(null)}
                           disabled={isPending}
                         >
-                          Atualizar quantidade
+                          Cancelar
                         </button>
+                      ) : (
+                        <>
+                          {quantityChanged && (
+                            <button
+                              className="btn btn--solid"
+                              type="button"
+                              onClick={() => saveReservation(item, selected)}
+                              disabled={isPending}
+                            >
+                              Atualizar quantidade
+                            </button>
+                          )}
+                          <button
+                            className="btn btn--cancel"
+                            type="button"
+                            onClick={() => updateReservation(item, "release")}
+                            disabled={isPending}
+                          >
+                            Cancelar reserva
+                          </button>
+                        </>
                       )}
-                      <button
-                        className="btn btn--cancel"
-                        type="button"
-                        onClick={() => updateReservation(item, "release")}
-                        disabled={isPending}
-                      >
-                        Cancelar reserva
-                      </button>
                     </div>
                   </div>
                 </div>

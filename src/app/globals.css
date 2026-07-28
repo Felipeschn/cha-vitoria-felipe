@@ -623,6 +623,10 @@ h1, h2, h3, h4 {
 .date-lockup__hour::before { content: ""; width: 2.5rem; height: 1px; background: var(--wood); flex: none; }
 .ww__note { margin: 1rem 0 0; color: var(--ink-soft); font-size: .95rem; }
 
+/* A data como frase — só aparece no celular, onde o numeral isolado vira
+   torre. Ver o bloco de 620px. */
+.date-compact { display: none; }
+
 /* Retângulo, não arco: o arco cortava justamente a faixa onde o Google Maps
    desenha ruas e rótulos. */
 .place {
@@ -1494,34 +1498,111 @@ h1, h2, h3, h4 {
 
 /* ═══════════════════════════════════════════════════════ responsivo ═══ */
 
+/* ═══════════════════════════════════════════ tablet e telas médias ═══ */
+
 @media (max-width: 900px) {
-  /* A marca passa para cima do texto e encolhe: em coluna única ela vira
-     abertura, não coadjuvante da lateral. */
+  /* A marca passa para cima do texto: em coluna única ela vira abertura,
+     não coadjuvante da lateral. */
   .hero__main { grid-template-columns: 1fr; gap: 2rem; }
   .hero__mark { order: -1; justify-self: start; }
-  .hero__ring { width: clamp(9rem, 34vw, 12rem); }
-  .hero__sprig { height: clamp(6.5rem, 24vw, 9rem); }
+  .hero__ring { width: clamp(9rem, 30vw, 12rem); }
+  .hero__sprig { height: clamp(6.5rem, 22vw, 9rem); }
 
   /* Dois em cima, um embaixo ocupando a largura — continua legível como
      conjunto de listas. */
   .ways { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ways > :last-child { grid-column: 1 / -1; }
-  .ww { grid-template-columns: 1fr; gap: 3rem; }
+  .ww { grid-template-columns: 1fr; gap: 2.5rem; }
   .ww__col .section-heading { margin-bottom: 1.75rem; }
-  .map-arch { aspect-ratio: 1 / 1; }
   .place__map { aspect-ratio: 3 / 2; }
   .adm-row { grid-template-columns: var(--tap) minmax(0, 1fr) auto; }
   .adm-row__gifts { grid-column: 2 / -1; }
 }
 
+/* ═══════════════════════════════════════════════════════ celular ═══ */
+
+/* No desktop o hero é editorial: texto à esquerda, marca à direita. No
+   celular não existe "à direita" — a composição vira simétrica, com a marca
+   abrindo de cima. É uma versão própria, não o desktop espremido. */
 @media (max-width: 620px) {
-  .hero { gap: 2rem; }
-  .spec { grid-template-columns: 1fr; gap: 1.1rem; }
-  .spec__cell + .spec__cell { padding-top: 1.1rem; border-top: 1px solid var(--line); }
+  .hero {
+    /* Espaço para os botões fixos do topo não encostarem no conteúdo. */
+    padding-top: 4.25rem;
+    gap: 1.6rem;
+    text-align: center;
+  }
+  .hero__rail { justify-content: center; }
+  .hero__main { gap: 1.4rem; }
+  .hero__content { max-width: none; }
+  .hero__mark { justify-self: center; }
+  /* O anel precisa caber na largura: antes ele vazava e era recortado pela
+     borda da tela. */
+  .hero__ring { width: min(12rem, 56vw); }
+  .hero__sprig { height: min(8rem, 38vw); }
+  .hero__display { font-size: clamp(3rem, 14vw, 4.4rem); }
+  .hero__deck { margin-inline: auto; max-width: 28ch; }
+  .hero__plan { opacity: .28; }
 
-  .ways { grid-template-columns: 1fr; }
+  .spec { grid-template-columns: 1fr; gap: 1rem; text-align: left; }
+  .spec__cell + .spec__cell { padding-top: 1rem; border-top: 1px solid var(--line); }
 
-  .row { grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: "mark body act" "drawer drawer drawer"; }
+  /* O canto superior é disputado: encolher os botões devolve respiro. */
+  .top-actions { gap: .35rem; }
+  .top-action { padding: .5rem .8rem; font-size: .58rem; letter-spacing: .12em; }
+
+  /* Um mapa baixo some sob os próprios controles do Google. Quadrado, ele
+     volta a mostrar rua e referência. */
+  .place__map { aspect-ratio: 1 / 1; }
+  .place__body { padding: 1.25rem; }
+
+  .ww { gap: 2rem; }
+  .ww__col .section-heading { margin-bottom: 1.5rem; }
+
+  /* O numeral gigante só funciona no desktop, onde há coluna ao lado dele.
+     Aqui ele dá lugar à data escrita por extenso. */
+  .date-lockup,
+  .date-lockup__hour { display: none; }
+
+  .date-compact {
+    display: grid;
+    gap: .3rem;
+    margin: 1rem 0 0;
+    padding-left: 1.1rem;
+    border-left: 2px solid var(--wood);
+  }
+  .date-compact__main {
+    color: var(--forest);
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1.9rem;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -.015em;
+  }
+  .date-compact__note { color: var(--moss); font-size: .95rem; }
+  .ww__note { margin-top: .8rem; padding-left: 1.1rem; }
+
+  /* Empilhados e ocupando a largura toda, os cartões precisam de mais ar
+     entre si do que precisavam lado a lado — senão viram um bloco só. */
+  .ways { grid-template-columns: 1fr; gap: 1.75rem; }
+  .way { padding: 1.6rem 1.4rem; }
+  .way__chip { height: 3.2rem; }
+  .way__label { padding: .4rem .8rem; }
+  .way__name { margin-top: 1.15rem; }
+  .way__desc { margin-top: .85rem; }
+  .way__pix { margin-top: 1.25rem; }
+  /* Sem altura sobrando para o `margin-top: auto` distribuir, a ação
+     encostava no texto. */
+  .way__go, .way__tag { margin-top: 1.4rem; }
+
+  /* Três faixas: cabeçalho, ação em largura cheia e gaveta. Antes a ação e a
+     gaveta dividiam a mesma área e se sobrepunham. */
+  .row {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "mark body act"
+      "wide wide wide"
+      "drawer drawer drawer";
+  }
   .row__desc { -webkit-line-clamp: 2; }
 
   /* Reservar vira alvo circular: um toque, presente reservado. O rótulo
@@ -1530,14 +1611,23 @@ h1, h2, h3, h4 {
   .row__act .btn--reserve .btn__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .btn__glyph { display: block; }
 
+  /* Com reserva — ou escolhendo quantas unidades reservar —, o rótulo é longo
+     demais para caber ao lado do nome: a ação desce para uma faixa própria, em
+     largura cheia. */
   .row[data-state="mine"] .row__act,
-  .row[data-state="purchased"] .row__act { grid-area: drawer; justify-self: stretch; }
+  .row[data-state="purchased"] .row__act,
+  .row[data-choosing] .row__act {
+    grid-area: wide;
+    justify-self: stretch;
+    margin-top: .8rem;
+  }
   .row[data-state="mine"] .row__act .btn,
-  .row[data-state="purchased"] .row__act .btn { width: 100%; }
+  .row[data-state="purchased"] .row__act .btn,
+  .row[data-choosing] .row__act .btn { width: 100%; min-height: var(--tap); }
 
-  .row__drawer-inner { display: grid; grid-template-columns: 8rem minmax(0, 1fr); }
-  .row__drawer-inner > .btn--quiet { grid-column: 1 / -1; }
-  .stepper { height: 46px; grid-template-columns: 46px minmax(3ch, 1fr) 46px; }
+  .row__drawer-inner { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: .5rem; }
+  .row__drawer-inner > .btn--cancel { grid-column: 1 / -1; justify-content: center; }
+  .stepper { height: var(--tap); grid-template-columns: var(--tap) minmax(3ch, 1fr) var(--tap); }
 
   .ledger__filters { margin-inline: -.5rem; padding-inline: .5rem; overflow-x: auto; scrollbar-width: none; }
   .ledger__filters::-webkit-scrollbar { display: none; }
