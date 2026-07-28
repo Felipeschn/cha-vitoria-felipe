@@ -4,12 +4,18 @@ type InvitationDetails = {
   /** Ficha técnica do hero: linha forte e linha de apoio da célula "quando". */
   specWhen: string;
   specWhenNote: string;
-  /** Lockup da data. `day` nulo quando a data ainda não existe. */
+  /** Lockup da data no desktop. `day` nulo quando a data ainda não existe. */
   weekday: string;
   day: string | null;
   monthYear: string;
   time: string;
   dateTime: string | null;
+  /**
+   * A mesma data como frase, para o celular. O numeral isolado só funciona
+   * quando há coluna ao lado dele; em tela estreita vira uma torre.
+   */
+  compactDate: string;
+  compactDateNote: string;
   /** Nota abaixo do horário. */
   whenNote: string;
   rsvpEyebrow: string;
@@ -54,6 +60,8 @@ export const invitationGroups = {
     monthYear: "setembro de 2026",
     time: "15h",
     dateTime: "2026-09-20T15:00:00-03:00",
+    compactDate: "20 de setembro",
+    compactDateNote: "domingo, a partir das 15h",
     whenNote: "A gente fica por lá a tarde toda.",
     rsvpEyebrow: "Confirmação",
     rsvpTitle: "Você vem?",
@@ -72,6 +80,8 @@ export const invitationGroups = {
     monthYear: "em breve · 2026",
     time: "Horário a confirmar",
     dateTime: null,
+    compactDate: "Data em breve",
+    compactDateNote: "ainda escolhendo o dia",
     whenNote: "Avisamos assim que estiver de pé.",
     rsvpEyebrow: "Fique por perto",
     rsvpTitle: "Queremos você com a gente",
