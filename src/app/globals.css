@@ -1611,16 +1611,19 @@ h1, h2, h3, h4 {
   .row__act .btn--reserve .btn__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .btn__glyph { display: block; }
 
-  /* Com reserva, o rótulo é longo demais para caber ao lado do nome: a ação
-     desce para uma faixa própria, em largura cheia. */
+  /* Com reserva — ou escolhendo quantas unidades reservar —, o rótulo é longo
+     demais para caber ao lado do nome: a ação desce para uma faixa própria, em
+     largura cheia. */
   .row[data-state="mine"] .row__act,
-  .row[data-state="purchased"] .row__act {
+  .row[data-state="purchased"] .row__act,
+  .row[data-choosing] .row__act {
     grid-area: wide;
     justify-self: stretch;
     margin-top: .8rem;
   }
   .row[data-state="mine"] .row__act .btn,
-  .row[data-state="purchased"] .row__act .btn { width: 100%; min-height: var(--tap); }
+  .row[data-state="purchased"] .row__act .btn,
+  .row[data-choosing] .row__act .btn { width: 100%; min-height: var(--tap); }
 
   .row__drawer-inner { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: .5rem; }
   .row__drawer-inner > .btn--cancel { grid-column: 1 / -1; justify-content: center; }
