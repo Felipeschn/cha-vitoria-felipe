@@ -33,18 +33,39 @@ function requireEnvironmentValue(
   return value;
 }
 
+/**
+ * O cliente é reaproveitado entre requisições. Ele age sempre com a chave de
+ * serviço e não guarda sessão de usuário, então não há estado por requisição a
+ * isolar — e uma única chamada ao painel passava por aqui quatro vezes, cada
+ * uma montando um cliente inteiro do zero. A validação continua por chamada:
+ * uma variável ausente ainda estoura na hora do uso, não na importação.
+ */
+let cached: {
+  client: SupabaseClient<Database>;
+  secretKey: string;
+  url: string;
+} | null = null;
+
 export function createSupabaseAdminClient(): SupabaseClient<Database> {
   const environment = getEnvironment();
   const url = requireEnvironmentValue(environment, "SUPABASE_URL");
   const secretKey = requireEnvironmentValue(environment, "SUPABASE_SECRET_KEY");
 
-  return createClient<Database>(url, secretKey, {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  });
+  if (cached?.url !== url || cached.secretKey !== secretKey) {
+    cached = {
+      client: createClient<Database>(url, secretKey, {
+        auth: {
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+          persistSession: false,
+        },
+      }),
+      secretKey,
+      url,
+    };
+  }
+
+  return cached.client;
 }
 
 export function getSupabaseRealtimeConfig() {

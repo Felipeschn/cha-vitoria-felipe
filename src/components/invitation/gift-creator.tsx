@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 type GiftItem = {
   description: string | null;
@@ -67,11 +67,20 @@ export function GiftCreator({ onCount }: GiftCreatorProps) {
     return data;
   }, []);
 
+  // `onCount` sai das dependências por referência. Ele avisa a contagem para
+  // quem renderiza este painel, então mantê-lo como dependência de `loadItems`
+  // faria a carga inicial se reagendar toda vez que o pai re-renderizasse — e
+  // é a própria carga que provoca esse re-render.
+  const onCountRef = useRef(onCount);
+  useEffect(() => {
+    onCountRef.current = onCount;
+  });
+
   const loadItems = useCallback(async () => {
     const data = await request({ action: "adminList" });
     setItems(data.items ?? []);
-    onCount?.(data.items?.length ?? 0);
-  }, [onCount, request]);
+    onCountRef.current?.(data.items?.length ?? 0);
+  }, [request]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => {

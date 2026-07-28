@@ -100,7 +100,17 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
 
       const next = data.items;
       setItems(next);
-      setRealtime(data.realtime ?? null);
+      // A configuração chega igual em toda resposta, mas num objeto novo. Trocar
+      // o estado por causa disso derrubaria e reabriria o canal do Realtime a
+      // cada carga — inclusive nas de 30 em 30 segundos —, e mudanças que
+      // caíssem na janela entre uma inscrição e outra se perderiam.
+      setRealtime((current) => {
+        const config = data.realtime ?? null;
+        if (!config) return current === null ? current : null;
+        return current?.key === config.key && current.url === config.url
+          ? current
+          : config;
+      });
       setQuantities((current) =>
         Object.fromEntries(
           next.map((item) => {
@@ -120,7 +130,12 @@ export function IndividualGiftList({ displayName }: IndividualGiftListProps) {
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadItems(), 0);
-    const interval = window.setInterval(() => void loadItems(), 30_000);
+    // Aba escondida não precisa de lista atualizada: a volta para ela já dispara
+    // uma carga logo abaixo. Sem essa checagem, cada convidado com o convite
+    // aberto em segundo plano continuaria consultando o servidor a cada 30s.
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadItems();
+    }, 30_000);
     const refreshVisible = () => {
       if (document.visibilityState === "visible") void loadItems();
     };
