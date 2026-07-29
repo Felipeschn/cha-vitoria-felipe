@@ -92,8 +92,9 @@ convite revoga as sessões anteriores.
 
 No painel, cada convite pode ser marcado como **presença confirmada** — o
 registro manual do "vou sim" que chega pelo WhatsApp. É só um marcador: não
-mexe em acesso nem em sessões. A lista tem filtro por família e amigos, com a
-contagem de confirmados do grupo selecionado.
+mexe em acesso nem em sessões. A lista vem do convite mais novo para o mais
+antigo, e tem filtro por família e amigos, com a contagem de confirmados do
+grupo selecionado.
 
 Excluir um convite apaga o código, as sessões e as escolhas de presente,
 devolvendo as unidades reservadas à lista. É irreversível e serve para convites

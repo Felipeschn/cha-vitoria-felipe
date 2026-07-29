@@ -129,8 +129,11 @@ async function loadInvitations() {
           "id,display_name,audience,code_ciphertext,code_hint,is_confirmed,confirmed_at,is_sent,sent_at,session_version,created_at",
         )
         .eq("is_admin", false)
-        .order("audience")
-        .order("display_name"),
+        // Do mais novo para o mais antigo: quem acabou de criar um convite quer
+        // vê-lo na frente, sem procurar. `id` desempata convites criados no
+        // mesmo instante, para a ordem não variar entre duas leituras.
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false }),
       supabase
         .from("gift_reservations")
         .select("invitation_id,gift_id,quantity,status,created_at")
