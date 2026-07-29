@@ -4,12 +4,12 @@ type InvitationDetails = {
   /** Ficha técnica do hero: linha forte e linha de apoio da célula "quando". */
   specWhen: string;
   specWhenNote: string;
-  /** Lockup da data no desktop. `day` nulo quando a data ainda não existe. */
+  /** Lockup da data no desktop. */
   weekday: string;
-  day: string | null;
+  day: string;
   monthYear: string;
   time: string;
-  dateTime: string | null;
+  dateTime: string;
   /**
    * A mesma data como frase, para o celular. O numeral isolado só funciona
    * quando há coluna ao lado dele; em tela estreita vira uma torre.
@@ -73,24 +73,24 @@ export const invitationGroups = {
     rsvpNote: "Se aparecer um imprevisto, avisa também. Sem cerimônia.",
   },
   amigos: {
-    specWhen: "Ainda escolhendo o dia",
-    specWhenNote: "Avisamos assim que estiver de pé",
-    weekday: "ainda escolhendo o dia",
-    day: null,
-    monthYear: "em breve · 2026",
-    time: "Horário a confirmar",
-    dateTime: null,
-    compactDate: "Data em breve",
-    compactDateNote: "ainda escolhendo o dia",
-    whenNote: "Avisamos assim que estiver de pé.",
-    rsvpEyebrow: "Fique por perto",
-    rsvpTitle: "Queremos você com a gente",
+    specWhen: "Sábado, 26 de setembro",
+    specWhenNote: "2026 · a partir das 15h",
+    weekday: "sábado",
+    day: "26",
+    monthYear: "setembro de 2026",
+    time: "15h",
+    dateTime: "2026-09-26T15:00:00-03:00",
+    compactDate: "26 de setembro",
+    compactDateNote: "sábado, a partir das 15h",
+    whenNote: "A gente fica por lá a tarde toda.",
+    rsvpEyebrow: "Confirmação",
+    rsvpTitle: "Você vem?",
     rsvpCopy:
-      "Estamos organizando uma segunda comemoração para os amigos próximos. Assim que a data estiver definida, avisamos por aqui.",
-    rsvpLabel: "Quero receber a data",
+      "Avisa com alguma antecedência — assim a comida e o gelo dão conta.",
+    rsvpLabel: "Confirmar pelo WhatsApp",
     rsvpMessage:
-      "Oi, Vitória e Felipe! Quero receber a data do chá de casa nova com os amigos. 💚",
-    rsvpNote: "Pode chamar quando quiser saber como estão as obras.",
+      "Oi, Vitória e Felipe! Confirmo minha presença no chá de casa nova com os amigos, dia 26 de setembro, às 15h. 💚",
+    rsvpNote: "Se aparecer um imprevisto, avisa também. Sem cerimônia.",
   },
 } as const satisfies Record<InvitationGroup, InvitationDetails>;
 

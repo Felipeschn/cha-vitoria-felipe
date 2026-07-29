@@ -26,10 +26,10 @@ const place = [
  * casal, do telefone pessoal, então ela é escrita na voz deles e já carrega o
  * link com o código de quem vai receber.
  *
- * Os dois públicos recebem textos diferentes de propósito: a família tem data
- * marcada e precisa confirmar presença; os amigos ainda esperam a data, e pedir
- * confirmação de uma festa sem dia definido não faria sentido. O tratamento
- * também muda — o convite de família costuma ir para uma casa inteira.
+ * Os dois públicos recebem textos diferentes de propósito: são duas festas em
+ * dias diferentes, cada uma com a sua data. O tratamento também muda — o
+ * convite de família costuma ir para uma casa inteira, e o dos amigos vai para
+ * uma pessoa só.
  */
 export function buildInvitationMessage({
   audience,
@@ -61,23 +61,24 @@ export function buildInvitationMessage({
     ].join("\n");
   }
 
+  const event = invitationGroups.amigos;
+
   return [
     `Oi, ${displayName}! 💚`,
     "",
     "A gente finalmente vai se mudar! Vamos fazer um chá de casa nova pra inaugurar, e você está na lista.",
     "",
-    "📅 A data com os amigos ainda está sendo fechada — assim que definir, aviso por aqui.",
-    "",
+    `📅 ${bold(event.compactDate)} — ${event.compactDateNote}`,
     place,
     "",
     "Teu convite já está de pé:",
     link,
     "",
-    `O link é pessoal e abre sozinho com o código de vocês (${code}). Lá dentro tem todas as informações.`,
+    `O link é pessoal e abre sozinho com o teu código (${code}). Lá dentro tem todas as informações.`,
     "",
-    "Qualquer coisa é só chamar!",
+    "Avisa se a gente pode contar contigo, só pra acertar a comida e o gelo!",
     "",
-    "Dattebayo,",
+    "Abraço,",
     "Felipe e Vitória",
   ].join("\n");
 }

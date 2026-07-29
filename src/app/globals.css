@@ -598,15 +598,6 @@ h1, h2, h3, h4 {
   letter-spacing: -.03em;
   font-variant-numeric: lining-nums;
 }
-/* O "em breve" não pode deixar buraco: a onda ocupa o peso ótico do numeral. */
-.date-lockup__wave {
-  display: grid;
-  place-items: start;
-  height: calc(var(--t-numeral) * .62);
-  margin-block: .12em .08em;
-}
-.date-lockup__wave svg { width: min(9rem, 70%); height: 100%; overflow: visible; }
-.date-lockup__wave path { fill: none; stroke: var(--wood); stroke-width: 2; stroke-linecap: round; }
 .date-lockup__month {
   color: var(--moss);
   font-family: var(--font-display), Georgia, serif;

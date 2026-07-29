@@ -113,36 +113,20 @@ export function InvitationPage({
                 <p className="eyebrow">Quando</p>
                 <p className="date-lockup">
                   <span className="date-lockup__weekday">{event.weekday}</span>
-                  {event.day ? (
-                    <span className="date-lockup__day">{event.day}</span>
-                  ) : (
-                    <span className="date-lockup__wave" aria-hidden="true">
-                      <svg viewBox="0 0 120 34" focusable="false">
-                        <path d="M4 24c14-22 28-22 42 0s28 22 42 0 28-22 28 0" />
-                      </svg>
-                    </span>
-                  )}
+                  <span className="date-lockup__day">{event.day}</span>
                   <span className="date-lockup__month">{event.monthYear}</span>
                 </p>
                 <p className="date-lockup__hour">
-                  {event.dateTime ? (
-                    <time dateTime={event.dateTime}>{event.time}</time>
-                  ) : (
-                    <span>{event.time}</span>
-                  )}
+                  <time dateTime={event.dateTime}>{event.time}</time>
                 </p>
 
                 {/* Versão de celular. Só uma das duas fica visível, e
                     `display: none` também a tira do leitor de tela — ninguém
                     ouve a data duas vezes. */}
                 <p className="date-compact">
-                  {event.dateTime ? (
-                    <time className="date-compact__main" dateTime={event.dateTime}>
-                      {event.compactDate}
-                    </time>
-                  ) : (
-                    <span className="date-compact__main">{event.compactDate}</span>
-                  )}
+                  <time className="date-compact__main" dateTime={event.dateTime}>
+                    {event.compactDate}
+                  </time>
                   <span className="date-compact__note">
                     {event.compactDateNote}
                   </span>

@@ -72,7 +72,7 @@ O comando `pnpm check` executa lint, verificação de tipos e build de produçã
 
 - `/` — portão de entrada; com sessão, o convite da audiência do convite
 - `/familia` — convite da família
-- `/amigos` — convite dos amigos, com data em breve
+- `/amigos` — convite dos amigos
 - `/criar-presentes` — área privada para administrar presentes e convites
 - `/api/gifts` — leitura e mutações da lista de presentes
 - `/api/invitations/access` — troca um código de convite por uma sessão segura
