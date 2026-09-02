@@ -34,25 +34,43 @@ export const heroCopy = {
 } as const;
 
 export const sharedEvent = {
-  venue: "Condomínio Terrace",
-  space: "Salão de Festas",
-  address: "R. Pedro Álvares Cabral, 279",
-  neighborhood: "Nossa Senhora das Graças — Canoas/RS",
+  address: "Rua Nossa Senhora Aparecida, 1132",
+  neighborhood: "Harmonia — Canoas/RS",
   // Sem `·` interno: a ficha técnica do hero já usa esse separador entre o
   // espaço e a cidade, e dois seguidos ficam ilegíveis.
   city: "Canoas, RS",
   mapUrl:
-    "https://www.google.com/maps/search/?api=1&query=Condom%C3%ADnio%20Terrace%2C%20R.%20Pedro%20%C3%81lvares%20Cabral%2C%20279%2C%20Canoas%2C%20RS",
+    "https://www.google.com/maps/search/?api=1&query=Rua%20Nossa%20Senhora%20Aparecida%2C%201132%2C%20Harmonia%2C%20Canoas%2C%20RS",
   // Embed público do Google Maps: sem chave de API e sem script externo.
   // Aponta direto para o destino final — a forma `?q=…&output=embed` responde
   // 301 com `X-Frame-Options: SAMEORIGIN`, e pular o salto evita depender de
   // como cada navegador trata o cabeçalho no redirect.
   mapEmbedUrl:
-    "https://www.google.com/maps/embed?origin=mfe&pb=!1m2!2m1!1sCondom%C3%ADnio+Terrace,+R.+Pedro+%C3%81lvares+Cabral,+279,+Nossa+Senhora+das+Gra%C3%A7as,+Canoas+-+RS",
+    "https://www.google.com/maps/embed?origin=mfe&pb=!1m2!2m1!1sRua+Nossa+Senhora+Aparecida,+1132,+Harmonia,+Canoas+-+RS",
 } as const;
 
 export const invitationGroups = {
   familia: {
+    specWhen: "Sábado, 19 de setembro",
+    specWhenNote: "2026 · a partir das 15h",
+    weekday: "sábado",
+    day: "19",
+    monthYear: "setembro de 2026",
+    time: "15h",
+    dateTime: "2026-09-19T15:00:00-03:00",
+    compactDate: "19 de setembro",
+    compactDateNote: "sábado, a partir das 15h",
+    whenNote: "A gente fica por lá a tarde toda.",
+    rsvpEyebrow: "Confirmação",
+    rsvpTitle: "Você vem?",
+    rsvpCopy:
+      "Diz pra gente com alguma antecedência — assim a comida e o gelo dão conta.",
+    rsvpLabel: "Confirmar pelo WhatsApp",
+    rsvpMessage:
+      "Oi, Vitória e Felipe! Confirmo minha presença no chá de casa nova da família, dia 19 de setembro, às 15h. 💚",
+    rsvpNote: "Se aparecer um imprevisto, avisa também. Sem cerimônia.",
+  },
+  amigos: {
     specWhen: "Domingo, 20 de setembro",
     specWhenNote: "2026 · a partir das 15h",
     weekday: "domingo",
@@ -66,30 +84,10 @@ export const invitationGroups = {
     rsvpEyebrow: "Confirmação",
     rsvpTitle: "Você vem?",
     rsvpCopy:
-      "Diz pra gente com alguma antecedência — assim a comida e o gelo dão conta.",
-    rsvpLabel: "Confirmar pelo WhatsApp",
-    rsvpMessage:
-      "Oi, Vitória e Felipe! Confirmo minha presença no chá de casa nova da família, dia 20 de setembro, às 15h. 💚",
-    rsvpNote: "Se aparecer um imprevisto, avisa também. Sem cerimônia.",
-  },
-  amigos: {
-    specWhen: "Sábado, 26 de setembro",
-    specWhenNote: "2026 · a partir das 15h",
-    weekday: "sábado",
-    day: "26",
-    monthYear: "setembro de 2026",
-    time: "15h",
-    dateTime: "2026-09-26T15:00:00-03:00",
-    compactDate: "26 de setembro",
-    compactDateNote: "sábado, a partir das 15h",
-    whenNote: "A gente fica por lá a tarde toda.",
-    rsvpEyebrow: "Confirmação",
-    rsvpTitle: "Você vem?",
-    rsvpCopy:
       "Avisa com alguma antecedência — assim a comida e o gelo dão conta.",
     rsvpLabel: "Confirmar pelo WhatsApp",
     rsvpMessage:
-      "Oi, Vitória e Felipe! Confirmo minha presença no chá de casa nova com os amigos, dia 26 de setembro, às 15h. 💚",
+      "Oi, Vitória e Felipe! Confirmo minha presença no chá de casa nova com os amigos, dia 20 de setembro, às 15h. 💚",
     rsvpNote: "Se aparecer um imprevisto, avisa também. Sem cerimônia.",
   },
 } as const satisfies Record<InvitationGroup, InvitationDetails>;
@@ -127,8 +125,8 @@ export const giftLists = [
 ] as const;
 
 export const pixDetails = {
-  key: "6b74c209-5149-4efb-8e49-1d57b41e34bf",
-  holder: "Vitória Moreira Padilha",
-  kind: "Chave aleatória",
+  key: "04870422042",
+  holder: "Felipe de Mello Schneider",
+  kind: "Chave CPF",
   logo: "/logos/pix.png",
 } as const;

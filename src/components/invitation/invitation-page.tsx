@@ -86,10 +86,8 @@ export function InvitationPage({
           <div className="spec__cell">
             <dt className="spec__k">Onde</dt>
             <dd className="spec__v">
-              <strong>{sharedEvent.venue}</strong>
-              <span>
-                {sharedEvent.space} · {sharedEvent.city}
-              </span>
+              <strong>{sharedEvent.address}</strong>
+              <span>{sharedEvent.neighborhood}</span>
             </dd>
           </div>
         </dl>
@@ -140,7 +138,7 @@ export function InvitationPage({
               <iframe
                 className="place__map"
                 src={sharedEvent.mapEmbedUrl}
-                title={`Mapa de ${sharedEvent.venue}, ${sharedEvent.address}`}
+                title={`Mapa de ${sharedEvent.address}, ${sharedEvent.neighborhood}`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
@@ -148,14 +146,9 @@ export function InvitationPage({
               <div className="place__body">
                 <p className="eyebrow eyebrow--dark">Onde</p>
                 <h3 className="place__venue">
-                  {sharedEvent.venue}
-                  <span>{sharedEvent.space}</span>
-                </h3>
-                <address className="place__address">
                   {sharedEvent.address}
-                  <br />
-                  {sharedEvent.neighborhood}
-                </address>
+                  <span>{sharedEvent.neighborhood}</span>
+                </h3>
                 <a
                   className="place__cta"
                   href={sharedEvent.mapUrl}

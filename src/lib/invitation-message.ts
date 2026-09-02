@@ -17,8 +17,8 @@ function bold(value: string) {
 }
 
 const place = [
-  `📍 ${bold(sharedEvent.venue)} — ${sharedEvent.space}`,
-  `${sharedEvent.address}, ${sharedEvent.neighborhood}`,
+  `📍 ${bold(sharedEvent.address)}`,
+  sharedEvent.neighborhood,
 ].join("\n");
 
 /**
